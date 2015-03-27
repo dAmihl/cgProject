@@ -1,9 +1,14 @@
 # cgProject
 Project repository for ComputerGraphics
+
 University of Innsbruck
 Students project
 
+EGGER Michael
+KOFLER Gerald
+GAUGLER Benjamin
 
+===============================
 
 OpenGL 3.3 / GLSL 3.3
 
