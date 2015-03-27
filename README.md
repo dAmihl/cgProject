@@ -4,8 +4,12 @@ Project repository for ComputerGraphics
 University of Innsbruck
 Students project
 
+by
+
 EGGER Michael
+
 KOFLER Gerald
+
 GAUGLER Benjamin
 
 ===============================
