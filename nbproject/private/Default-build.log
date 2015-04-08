@@ -1,0 +1,4 @@
+gcc -g -Wall -Wextra   -c -o RotatingCube.o RotatingCube.c
+gcc -g -Wall -Wextra   -c -o LoadShader.o LoadShader.c
+gcc -g -Wall -Wextra   -c -o Matrix.o Matrix.c
+gcc -o RotatingCube RotatingCube.o LoadShader.o Matrix.o -g -Wall -Wextra -lm -lglut -lGLEW -lGL
