@@ -170,6 +170,12 @@ int BOX3_CURRENT_UPDOWN_DIRECTION = -1;
 int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
 
+int deltaTime = 0;
+int oldTimeSinceStart = 0;
+
+void computeDeltaTime();
+
+
 GLfloat ground_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
     -GROUND_SIZE, -GROUND_HEIGHT,  GROUND_SIZE,
      GROUND_SIZE, -GROUND_HEIGHT,  GROUND_SIZE,
@@ -355,6 +361,16 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
     glDisableVertexAttribArray(vColor);   
 }
 
+/*
+ Computes the time elapsed since last Display()
+ */
+void computeDeltaTime(){
+    
+    int newTime = glutGet(GLUT_ELAPSED_TIME);
+    deltaTime = newTime - oldTimeSinceStart;
+    oldTimeSinceStart = newTime; 
+}
+
 
 void Display()
 {
@@ -385,6 +401,9 @@ void Display()
 
 void OnIdle()
 {
+    
+    computeDeltaTime();
+    
     float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI); 
     float RotationMatrixAnimGround[16];
     float RotationMatrixAnimPillar[16];
@@ -412,7 +431,7 @@ void OnIdle()
     BOX3_CURRENT_UPDOWN_DIRECTION = (BOX3_CURRENT_POSITION_Y > 2 ? -1 : (BOX3_CURRENT_POSITION_Y < 0 ? 1 : BOX3_CURRENT_UPDOWN_DIRECTION));
     BOX4_CURRENT_UPDOWN_DIRECTION = (BOX4_CURRENT_POSITION_Y > 2 ? -1 : (BOX4_CURRENT_POSITION_Y < 0 ? 1 : BOX4_CURRENT_UPDOWN_DIRECTION));
 
-    float updown = 0.05f;
+    float updown = 3.f * deltaTime/1000;
     
     BOX1_CURRENT_POSITION_Y += updown * BOX1_CURRENT_UPDOWN_DIRECTION;
     BOX2_CURRENT_POSITION_Y += updown * BOX2_CURRENT_UPDOWN_DIRECTION;
