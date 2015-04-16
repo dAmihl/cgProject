@@ -170,12 +170,16 @@ int BOX3_CURRENT_UPDOWN_DIRECTION = -1;
 int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
 
+/* variables for computing elapsed time since last render */
 int deltaTime = 0;
 int oldTimeSinceStart = 0;
 
 void computeDeltaTime();
 
 
+/*
+Vertex buffer for the ground box
+*/
 GLfloat ground_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
     -GROUND_SIZE, -GROUND_HEIGHT,  GROUND_SIZE,
      GROUND_SIZE, -GROUND_HEIGHT,  GROUND_SIZE,
@@ -215,7 +219,7 @@ GLushort ground_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 
 
 
-/*BOX 1*/
+/*Horse Box*/
 
 GLfloat box1_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
     -BOX1_SIZE, -BOX1_HEIGHT,  BOX1_SIZE,
@@ -307,8 +311,6 @@ GLushort pillar_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 * attribute name in shader
 *
 *******************************************************************/
-
-
 
 
 void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
@@ -404,6 +406,7 @@ void OnIdle()
     
     computeDeltaTime();
     
+	/* SetUp Rotation matrices */
     float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI); 
     float RotationMatrixAnimGround[16];
     float RotationMatrixAnimPillar[16];
@@ -426,6 +429,7 @@ void OnIdle()
 
     
 
+	/* compute merry-go-round horse translation */
     BOX1_CURRENT_UPDOWN_DIRECTION = (BOX1_CURRENT_POSITION_Y > 2 ? -1 : (BOX1_CURRENT_POSITION_Y < 0 ? 1 : BOX1_CURRENT_UPDOWN_DIRECTION));
     BOX2_CURRENT_UPDOWN_DIRECTION = (BOX2_CURRENT_POSITION_Y > 2 ? -1 : (BOX2_CURRENT_POSITION_Y < 0 ? 1 : BOX2_CURRENT_UPDOWN_DIRECTION));
     BOX3_CURRENT_UPDOWN_DIRECTION = (BOX3_CURRENT_POSITION_Y > 2 ? -1 : (BOX3_CURRENT_POSITION_Y < 0 ? 1 : BOX3_CURRENT_UPDOWN_DIRECTION));
@@ -488,6 +492,7 @@ void OnIdle()
 
 void SetupDataBuffers()
 {
+	/*Ground Shape */
     glGenBuffers(1, &GROUND_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, GROUND_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(ground_vertex_buffer_data), ground_vertex_buffer_data, GL_STATIC_DRAW);
@@ -500,7 +505,8 @@ void SetupDataBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, GROUND_CBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(ground_color_buffer_data), ground_color_buffer_data, GL_STATIC_DRAW);
     
-    
+
+    /* Horse shape*/
     glGenBuffers(1, &BOX1_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, BOX1_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(box1_vertex_buffer_data), box1_vertex_buffer_data, GL_STATIC_DRAW);
@@ -514,7 +520,7 @@ void SetupDataBuffers()
     glBufferData(GL_ARRAY_BUFFER, sizeof(box1_color_buffer_data), box1_color_buffer_data, GL_STATIC_DRAW);
     
     
-    
+    /* Pillar shape*/
     glGenBuffers(1, &PILLAR_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, PILLAR_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(pillar_vertex_buffer_data), pillar_vertex_buffer_data, GL_STATIC_DRAW);
