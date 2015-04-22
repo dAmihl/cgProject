@@ -1,17 +1,15 @@
 /******************************************************************
 *
-* RotatingCube.c
+* MerryGoRound.c
 *
-* Description: This example demonstrates a colored, rotating
-* cube in shader-based OpenGL. The use of transformation
-* matrices, perspective projection, and indexed triangle sets 
-* are shown.
 *
 * Computer Graphics Proseminar SS 2015
+* First project assignment
 * 
-* Interactive Graphics and Simulation Group
-* Institute of Computer Science
-* University of Innsbruck
+*
+*	Created by
+*	Egger Michael, Benjamin Gaugler, Gerald Kofler
+*
 *
 *******************************************************************/
 
