@@ -4,6 +4,7 @@
     <df root="." name="0">
       <in>LoadShader.c</in>
       <in>Matrix.c</in>
+      <in>MerryGoRound.c</in>
       <in>RotatingCube.c</in>
     </df>
     <logicalFolder name="ExternalFiles"
@@ -35,7 +36,7 @@
           <buildCommandWorkingDir>.</buildCommandWorkingDir>
           <buildCommand>${MAKE} -f Makefile</buildCommand>
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
-          <executablePath>RotatingCube</executablePath>
+          <executablePath>MerryGoRound</executablePath>
         </makeTool>
       </makefileType>
       <item path="LoadShader.c" ex="false" tool="0" flavor2="0">
@@ -46,7 +47,11 @@
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="RotatingCube.c" ex="false" tool="0" flavor2="0">
+      <item path="MerryGoRound.c" ex="false" tool="0" flavor2="0">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="RotatingCube.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
       </item>

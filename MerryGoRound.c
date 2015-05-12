@@ -167,6 +167,18 @@ int BOX2_CURRENT_UPDOWN_DIRECTION = 1;
 int BOX3_CURRENT_UPDOWN_DIRECTION = -1;
 int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
+int MOUSE_OLD_X_POS = 0;
+int MOUSE_OLD_Y_POS = 0;
+
+int mouseDeltaX = 0;
+int mouseDeltaY = 0;
+
+
+const int CAMERA_FREE_MOVE = 1;
+const int CAMERA_FIXED_MOVE = 0;
+int cameraMode = 0;
+
+
 
 /* variables for computing elapsed time since last render */
 int deltaTime = 0;
@@ -393,6 +405,121 @@ void Display()
 
 /******************************************************************
 *
+* Mouse
+*
+* Function is called on mouse button press; has been seta
+* with glutMouseFunc(), x and y specify mouse coordinates,
+* but are not used here.
+*
+*******************************************************************/
+
+void Mouse(int button, int state, int x, int y) 
+{
+    mouseDeltaX = x - MOUSE_OLD_X_POS;
+    mouseDeltaY = y - MOUSE_OLD_Y_POS;
+    
+    if(state == GLUT_DOWN) 
+    {
+      /* Depending on button pressed, set rotation axis,
+       * turn on animation */
+        switch(button) 
+	{
+	    case GLUT_LEFT_BUTTON:    
+	        //axis = Xaxis;
+		break;
+
+	    case GLUT_MIDDLE_BUTTON:  
+  	        //axis = Yaxis;
+	        break;
+		
+	    case GLUT_RIGHT_BUTTON: 
+	       // axis = Zaxis;
+		break;
+	}
+	//anim = GL_TRUE;
+    }
+    
+    
+    
+    MOUSE_OLD_X_POS = x;
+    MOUSE_OLD_Y_POS = y;
+}
+
+
+/******************************************************************
+*
+* MouseMove
+*
+* Function is called on mouse moving in active window; has been seta
+* with glutPassiveMotionFunc(), x and y specify mouse coordinates,
+* 
+*
+*******************************************************************/
+
+void MouseMove(int x, int y) 
+{
+    mouseDeltaX = x - MOUSE_OLD_X_POS;
+    mouseDeltaY = y - MOUSE_OLD_Y_POS;
+    
+    
+    MOUSE_OLD_X_POS = x;
+    MOUSE_OLD_Y_POS = y;
+}
+
+
+/******************************************************************
+*
+* Keyboard
+*
+* Function to be called on key press in window; set by
+* glutKeyboardFunc(); x and y specify mouse position on keypress;
+* not used in this example 
+*
+*******************************************************************/
+
+void Keyboard(unsigned char key, int x, int y)   
+{
+    switch( key ) 
+    {
+	/* Activate camera mode fixed or free */
+	case '1': 
+            cameraMode = CAMERA_FIXED_MOVE;
+		break;
+
+	case '2':
+		cameraMode = CAMERA_FREE_MOVE;	
+		break;
+
+	/* Toggle animation */
+	case '0':
+		/*if (anim)
+			anim = GL_FALSE;		
+		else
+			anim = GL_TRUE;*/
+		break;
+
+	/* Reset initial rotation of object */
+	case 'o':
+	    /*SetIdentityMatrix(RotationMatrixAnimX);
+	    SetIdentityMatrix(RotationMatrixAnimY);
+	    SetIdentityMatrix(RotationMatrixAnimZ);
+	    angleX = 0.0;
+	    angleY = 0.0;
+	    angleZ = 0.0;*/
+	    break;
+	    
+	case 'q': case 'Q':  
+	    exit(0);    
+		break;
+    }
+
+    glutPostRedisplay();
+}
+
+
+
+/******************************************************************
+*
 * OnIdle
 *
 * 
@@ -403,6 +530,21 @@ void OnIdle()
 {
     
     computeDeltaTime();
+    
+    if (cameraMode == CAMERA_FREE_MOVE){
+        float RotationMatrixAnimMouseX[16];
+        float RotationMatrixAnimMouseY[16];
+        float RotationMatrixAnimMouseZ[16];
+
+        SetRotationX(-mouseDeltaY, RotationMatrixAnimMouseX);
+        SetRotationY(-mouseDeltaX, RotationMatrixAnimMouseY);
+        SetRotationZ(0, RotationMatrixAnimMouseZ);
+        
+        MultiplyMatrix(RotationMatrixAnimMouseX, ViewMatrix, ViewMatrix);
+        MultiplyMatrix(RotationMatrixAnimMouseY, ViewMatrix, ViewMatrix);
+        MultiplyMatrix(RotationMatrixAnimMouseZ, ViewMatrix, ViewMatrix);
+    }// 1 4 5
+    
     
 	/* SetUp Rotation matrices */
     float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI); 
@@ -828,6 +970,9 @@ int main(int argc, char** argv)
      * handing control over to GLUT */
     glutIdleFunc(OnIdle);
     glutDisplayFunc(Display);
+    glutKeyboardFunc(Keyboard); 
+    glutMouseFunc(Mouse);
+    glutPassiveMotionFunc(MouseMove);
     glutMainLoop();
 
     /* ISO C requires main to return int */

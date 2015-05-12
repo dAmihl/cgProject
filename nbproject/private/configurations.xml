@@ -8,7 +8,6 @@
       <in>Matrix.h</in>
       <in>MerryGoRound.c</in>
       <in>RotatingCube.c</in>
-      <in>test.cpp</in>
     </df>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
