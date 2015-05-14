@@ -30,5 +30,8 @@
 
 *.zip
 
+# ide
+*.kdev4
+
 # the compiled file
 MerryGoRound

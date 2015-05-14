@@ -42,7 +42,8 @@
 
 /* Local includes */
 #include "LoadShader.h"   /* Provides loading function for shader code */
-#include "Matrix.h"  
+#include "Matrix.h"
+#include "OBJParser.h"
 
 
 /*----------------------------------------------------------------*/
@@ -80,6 +81,27 @@ GLuint PILLAR_CBO;
 GLuint PILLAR_IBO;
 
 
+/* ------------------------------------------------------------------------- */
+/*      Added for exercise 2                                                 */
+
+/* Arrays for holding vertex data of the model */
+GLfloat *vertex_buffer_suzanne;
+
+/* Arrays for holding indices of the model */
+GLushort *index_buffer_suzanne;
+
+/* Structures for loading of OBJ data */
+obj_scene_data suzanne_data;
+
+/* Define handles to two vertex buffer objects */
+GLuint VBO1;
+
+/* Define handles to two index buffer objects */
+GLuint IBO1;
+
+/* ------------------------------------------------------------------------- */
+
+
 /* Indices to vertex attributes; in this case positon and color */ 
 enum DataID {vPosition = 0, vColor = 1}; 
 
@@ -98,6 +120,8 @@ float ModelMatrixBox1[16]; /*Model matrix for box1*/
 float ModelMatrixBox2[16]; /*Model matrix for box2*/
 float ModelMatrixBox3[16]; /*Model matrix for box3*/
 float ModelMatrixBox4[16]; /*Model matrix for box4*/
+
+float SuzanMatrix[16];
 
 
 
@@ -393,9 +417,12 @@ void Display()
     DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
     DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
     DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox1);
+    //DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, SuzanMatrix);
     DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox2);
     DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox3);
     DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox4);
+    
+    DrawObject(VBO1, BOX1_CBO, IBO1, SuzanMatrix);
 
 
     /* Swap between front and back buffer */ 
@@ -622,6 +649,8 @@ void OnIdle()
 }
 
 
+
+
 /******************************************************************
 *
 * SetupDataBuffers
@@ -632,7 +661,7 @@ void OnIdle()
 
 void SetupDataBuffers()
 {
-	/*Ground Shape */
+    /*Ground Shape */
     glGenBuffers(1, &GROUND_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, GROUND_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(ground_vertex_buffer_data), ground_vertex_buffer_data, GL_STATIC_DRAW);
@@ -647,6 +676,7 @@ void SetupDataBuffers()
     
 
     /* Horse shape*/
+    /* */
     glGenBuffers(1, &BOX1_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, BOX1_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(box1_vertex_buffer_data), box1_vertex_buffer_data, GL_STATIC_DRAW);
@@ -654,11 +684,11 @@ void SetupDataBuffers()
     glGenBuffers(1, &BOX1_IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BOX1_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(box1_index_buffer_data), box1_index_buffer_data, GL_STATIC_DRAW);
-
+    /* */
     glGenBuffers(1, &BOX1_CBO);
     glBindBuffer(GL_ARRAY_BUFFER, BOX1_CBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(box1_color_buffer_data), box1_color_buffer_data, GL_STATIC_DRAW);
-    
+      
     
     /* Pillar shape*/
     glGenBuffers(1, &PILLAR_VBO);
@@ -672,6 +702,32 @@ void SetupDataBuffers()
     glGenBuffers(1, &PILLAR_CBO);
     glBindBuffer(GL_ARRAY_BUFFER, PILLAR_CBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(pillar_color_buffer_data), pillar_color_buffer_data, GL_STATIC_DRAW);
+    
+    
+ /* -------------------------------------------------------------------------*/
+ /*         Added for exercise 2                                             */
+   
+    glGenBuffers(1, &VBO1);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+    glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_count*3*sizeof(GLfloat), vertex_buffer_suzanne, GL_STATIC_DRAW);
+
+    
+    glGenBuffers(1, &IBO1);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO1);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLushort), index_buffer_suzanne, GL_STATIC_DRAW);
+ 
+ /*
+    glGenBuffers(1, &BOX1_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+    glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_count*3*sizeof(GLfloat), vertex_buffer_suzanne, GL_STATIC_DRAW);
+
+    
+    glGenBuffers(1, &BOX1_IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO1);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLushort), index_buffer_suzanne, GL_STATIC_DRAW);
+ */
+ /* -------------------------------------------------------------------------*/   
+    
 }
 
 
@@ -811,6 +867,44 @@ void setupIntelMesaConfiguration(){
 
 void Initialize(void)
 {   
+    int i;
+    int success;
+    
+    /* Load suzanne */
+    char* filename_suzanne = "models/suzanne.obj";
+    success = parse_obj_scene(&suzanne_data, filename_suzanne);
+    
+    if(!success)
+        printf("Could not load file 'suzanne'. Exiting. \n");
+    
+    /*  Copy mesh data from structs into appropriate arrays */ 
+    int vert = suzanne_data.vertex_count;
+    int indx = suzanne_data.face_count;
+
+    vertex_buffer_suzanne = (GLfloat*) calloc (vert*3, sizeof(GLfloat));
+    index_buffer_suzanne = (GLushort*) calloc (indx*3, sizeof(GLushort));
+  
+    /* Vertices */
+    for(i=0; i<vert; i++)
+    {
+        vertex_buffer_suzanne[i*3] = (GLfloat)(suzanne_data.vertex_list[i])->e[0];
+	vertex_buffer_suzanne[i*3+1] = (GLfloat)(suzanne_data.vertex_list[i])->e[1];
+	vertex_buffer_suzanne[i*3+2] = (GLfloat)(suzanne_data.vertex_list[i])->e[2];
+    }
+
+    /* Indices */
+    for(i=0; i<indx; i++)
+    {
+	index_buffer_suzanne[i*3] = (GLushort)(suzanne_data.face_list[i])->vertex_index[0];
+	index_buffer_suzanne[i*3+1] = (GLushort)(suzanne_data.face_list[i])->vertex_index[1];
+	index_buffer_suzanne[i*3+2] = (GLushort)(suzanne_data.face_list[i])->vertex_index[2];
+    }
+    
+    
+    
+    
+    
+    
     /* Set background (clear) color to dark blue */ 
     glClearColor(1.0, 1.0, 1.0, 0.0);
 
@@ -825,7 +919,7 @@ void Initialize(void)
     SetupDataBuffers();
 
     /* Setup shaders and shader program */
-    CreateShaderProgram();  
+    CreateShaderProgram();
 
     /* Initialize matrices */
     SetIdentityMatrix(ProjectionMatrix);
@@ -837,6 +931,7 @@ void Initialize(void)
     SetIdentityMatrix(ModelMatrixBox2);
     SetIdentityMatrix(ModelMatrixBox3);
     SetIdentityMatrix(ModelMatrixBox4);
+    SetIdentityMatrix(SuzanMatrix);
 
     BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
     BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
