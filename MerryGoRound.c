@@ -121,7 +121,7 @@ float ModelMatrixBox2[16]; /*Model matrix for box2*/
 float ModelMatrixBox3[16]; /*Model matrix for box3*/
 float ModelMatrixBox4[16]; /*Model matrix for box4*/
 
-float SuzanMatrix[16];
+float SuzanneMatrix[16];
 
 
 
@@ -422,7 +422,7 @@ void Display()
     DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox3);
     DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox4);
     
-    DrawObject(VBO1, BOX1_CBO, IBO1, SuzanMatrix);
+    DrawObject(VBO1, BOX1_CBO, IBO1, SuzanneMatrix);
 
 
     /* Swap between front and back buffer */ 
@@ -643,6 +643,14 @@ void OnIdle()
     MultiplyMatrix(RotationMatrixAnimBox4, InitialTransformBox4, ModelMatrixBox4);
     MultiplyMatrix(UpDownTranslationBox4, ModelMatrixBox4, ModelMatrixBox4);
     MultiplyMatrix(TranslateDownBox4, ModelMatrixBox4, ModelMatrixBox4);
+    
+    
+    /* ---------------------------------------------------------------------------- */
+    /* 		Added for exercise 2						    */
+    MultiplyMatrix(RotationMatrixAnimBox4, InitialTransformBox4, SuzanneMatrix);
+    MultiplyMatrix(UpDownTranslationBox4, SuzanneMatrix, SuzanneMatrix);
+    MultiplyMatrix(TranslateDownBox4, SuzanneMatrix, SuzanneMatrix);
+    /* ---------------------------------------------------------------------------- */
 
     /* Request redrawing forof window content */  
     glutPostRedisplay();
@@ -931,7 +939,7 @@ void Initialize(void)
     SetIdentityMatrix(ModelMatrixBox2);
     SetIdentityMatrix(ModelMatrixBox3);
     SetIdentityMatrix(ModelMatrixBox4);
-    SetIdentityMatrix(SuzanMatrix);
+    SetIdentityMatrix(SuzanneMatrix);
 
     BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
     BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
