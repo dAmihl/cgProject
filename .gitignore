@@ -29,3 +29,6 @@
 *.hex
 
 *.zip
+
+# the compiled file
+MerryGoRound
