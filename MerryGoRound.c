@@ -111,11 +111,14 @@ static const char* FragmentShaderString;
 
 GLuint ShaderProgram;
 
+
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */ 
+
 float ModelMatrixGround[16]; /* Model matrix for the ground*/
 float ModelMatrixRoof[16]; /* Model matrix for the roof */
 float ModelMatrixPillar[16]; /* Model matrix for the pillar */
+
 float ModelMatrixBox1[16]; /*Model matrix for box1*/
 float ModelMatrixBox2[16]; /*Model matrix for box2*/
 float ModelMatrixBox3[16]; /*Model matrix for box3*/
@@ -204,6 +207,11 @@ int mouseDeltaY = 0;
 const int CAMERA_FREE_MOVE = 1;
 const int CAMERA_FIXED_MOVE = 0;
 int cameraMode = 0;
+
+/* ------------------------------------ */
+float angle_factor = 1.0;
+int angle_direction = 1;
+/* ------------------------------------ */
 
 
 
@@ -524,6 +532,16 @@ void Keyboard(unsigned char key, int x, int y)
 {
     switch( key ) 
     {
+	/* --------------------------------------- */
+	case 'w':
+	    if (angle_factor < 3) angle_factor += 0.1;
+	    break;
+	    
+	case 's':
+	    if (angle_factor > 0) angle_factor = 0.1;
+	    break;
+	/* --------------------------------------- */
+	
 	/* Activate camera mode fixed or free */
 	case '1': 
             cameraMode = CAMERA_FIXED_MOVE;
@@ -590,7 +608,11 @@ void OnIdle()
     
     
 	/* SetUp Rotation matrices */
-    float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI); 
+    float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI);
+    
+    angle *= angle_factor;
+    angle *= angle_direction;
+    
     float RotationMatrixAnimGround[16];
     float RotationMatrixAnimPillar[16];
     float RotationMatrixAnimRoof[16];
