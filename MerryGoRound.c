@@ -21,12 +21,14 @@
 #define USES_MESA_DRIVER 1
 
 
+#define WALL_SIZE 6.0
+#define WALL_HEIGHT 0.1
+
 #define GROUND_SIZE 3.0
 #define GROUND_HEIGHT 0.2
 
 #define BOX1_SIZE 0.3
 #define BOX1_HEIGHT 1.0
-*/
     
 #define PILLAR_SIZE 0.5
 #define PILLAR_HEIGHT 2
@@ -87,6 +89,18 @@ GLuint PILLAR_IBO;
 
 
 
+
+/* Define handle to a vertex buffer object */
+GLuint WALL_VBO;
+
+/* Define handle to a color buffer object */
+GLuint WALL_CBO; 
+
+/* Define handle to an index buffer object */
+GLuint WALL_IBO;
+
+
+
 /* for the loaded OBJ */
 
 /* Arrays for holding vertex data of the model */
@@ -135,6 +149,12 @@ int cameraMode = 0;
 float ModelMatrixGround[16];	/* Model matrix for the ground layer */
 float ModelMatrixRoof[16];	/* Model matrix for the roof (top layer) */
 float ModelMatrixPillar[16];	/* Model matrix for the pillar */
+
+float ModelMatrixFloor[16]; /* Model matrix for the floor entity*/
+float ModelMatrixWall1[16]; /* Model matrix for the wall entity*/
+float ModelMatrixWall2[16]; /* Model matrix for the wall entity*/
+float ModelMatrixWall3[16]; /* Model matrix for the wall entity*/
+
 
 float ModelMatrixBox1[16]; /*Model matrix for box1*/
 float ModelMatrixBox2[16]; /*Model matrix for box2*/
@@ -195,6 +215,39 @@ float RotateXBox4[16];
 float RotateZBox4[16];
 float InitialTransformBox4[16];
 float UpDownTranslationBox4[16];
+
+/* Walls and Ground */
+
+float TranslateOriginWall1[16];
+float TranslateDownWall1[16];
+float RotateXWall1[16];
+float RotateYWall1[16];
+float RotateZWall1[16];
+float InitialTransformWall1[16];
+float UpDownTranslationWall1[16];
+
+float TranslateOriginWall2[16];
+float TranslateDownWall2[16];
+float RotateXWall2[16];
+float RotateZWall2[16];
+float RotateYWall2[16];
+float InitialTransformWall2[16];
+float UpDownTranslationWall2[16];
+
+float TranslateOriginWall3[16];
+float TranslateDownWall3[16];
+float RotateXWall3[16];
+float RotateZWall3[16];
+float RotateYWall3[16];
+float InitialTransformWall3[16];
+float UpDownTranslationWall3[16];
+
+float TranslateOriginFloor[16];
+float TranslateDownFloor[16];
+float RotateXFloor[16];
+float RotateZFloor[16];
+float InitialTransformFloor[16];
+float UpDownTranslationFloor[16];
 
 
 const float BOX1_START_POSITION_Y = 1.0;
@@ -382,6 +435,47 @@ GLushort pillar_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 };
 
 
+/*
+Vertex buffer for the wall box
+*/
+GLfloat wall_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
+    -WALL_SIZE, -WALL_HEIGHT,  WALL_SIZE,
+     WALL_SIZE, -WALL_HEIGHT,  WALL_SIZE,
+     WALL_SIZE,  WALL_HEIGHT,  WALL_SIZE,
+    -WALL_SIZE,  WALL_HEIGHT,  WALL_SIZE,
+    -WALL_SIZE, -WALL_HEIGHT, -WALL_SIZE,
+     WALL_SIZE, -WALL_HEIGHT, -WALL_SIZE,
+     WALL_SIZE,  WALL_HEIGHT, -WALL_SIZE,
+    -WALL_SIZE,  WALL_HEIGHT, -WALL_SIZE,
+};   
+
+GLfloat wall_color_buffer_data[] = { /* RGB color values for 8 vertices */
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+}; 
+
+GLushort wall_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
+    0, 1, 2,
+    2, 3, 0,
+    1, 5, 6,
+    6, 2, 1,
+    7, 6, 5,
+    5, 4, 7,
+    4, 0, 3,
+    3, 7, 4,
+    4, 5, 1,
+    1, 0, 4,
+    3, 2, 6,
+    6, 7, 3,
+};
+
+
 /*----------------------------------------------------------------*/
 
 
@@ -477,6 +571,15 @@ void Display()
     DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
     DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
     DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox1);
+    
+    /* Walls and Floor*/
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixFloor);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall1);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall2);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall3);
+
+
+    
     //DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, SuzanMatrix);
     DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox2);
     DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox3);
@@ -680,7 +783,7 @@ void OnIdle()
 	/* ------------------------------------------ */
 	 // SetIdentityMatrix(RotationMatrixAnimMouseZ);
 	/* ------------------------------------------ */
-	float rotatey = mouseDeltaY / 180 * 3.141592654f
+	float rotatey = mouseDeltaY / 180 * 3.141592654f;
         SetRotationX(-mouseDeltaY, RotationMatrixAnimMouseX);
         SetRotationY(-mouseDeltaX, RotationMatrixAnimMouseY);
         SetRotationZ(0, RotationMatrixAnimMouseZ);
@@ -754,6 +857,8 @@ void OnIdle()
     
     MultiplyMatrix(RotationMatrixAnimPillar, InitialTransformPillar, ModelMatrixPillar);
     MultiplyMatrix(TranslateDownPillar, ModelMatrixPillar, ModelMatrixPillar);
+    
+    
 
     MultiplyMatrix(RotationMatrixAnimBox1, InitialTransformBox1, ModelMatrixBox1);
     MultiplyMatrix(UpDownTranslationBox1, ModelMatrixBox1, ModelMatrixBox1);
@@ -853,6 +958,20 @@ void SetupDataBuffers()
     glGenBuffers(1, &PILLAR_CBO);
     glBindBuffer(GL_ARRAY_BUFFER, PILLAR_CBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(pillar_color_buffer_data), pillar_color_buffer_data, GL_STATIC_DRAW);
+    
+    
+    /* WALL shape*/
+    glGenBuffers(1, &WALL_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, WALL_VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(wall_vertex_buffer_data), wall_vertex_buffer_data, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &WALL_IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, WALL_IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(wall_index_buffer_data), wall_index_buffer_data, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &WALL_CBO);
+    glBindBuffer(GL_ARRAY_BUFFER, WALL_CBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(wall_color_buffer_data), wall_color_buffer_data, GL_STATIC_DRAW);
     
     
  /* -------------------------------------------------------------------------*/
@@ -1056,7 +1175,7 @@ void Initialize(void)
     
     
     
-    /* Set background (clear) color to dark blue */ 
+    /* Set background (clear) color to white */ 
     glClearColor(1.0, 1.0, 1.0, 0.0);
 
     /* Enable depth testing */
@@ -1080,6 +1199,13 @@ void Initialize(void)
     SetIdentityMatrix(ModelMatrixGround);
     SetIdentityMatrix(ModelMatrixPillar);
     SetIdentityMatrix(ModelMatrixRoof);
+    
+    SetIdentityMatrix(ModelMatrixFloor);
+    SetIdentityMatrix(ModelMatrixWall1);
+    SetIdentityMatrix(ModelMatrixWall2);
+    SetIdentityMatrix(ModelMatrixWall3);
+
+    
     
     SetIdentityMatrix(ModelMatrixBox1);
     SetIdentityMatrix(ModelMatrixBox2);
@@ -1131,9 +1257,31 @@ void Initialize(void)
     SetRotationX(0, RotateXPillar);
     SetRotationZ(0, RotateZPillar);
     
-
+    /* Walls and Floor*/
+    //floor
+    int floor_y = -3;
+    SetTranslation(0, -3, 0, TranslateOriginFloor);
+    SetRotationX(0, RotateXFloor);
+    SetRotationZ(0, RotateZFloor);
     
-
+    // left wall
+    SetTranslation(-floor_y, -WALL_SIZE, 0, TranslateOriginWall1);
+    SetRotationX(0, RotateXWall1);
+    SetRotationY(0, RotateYWall1);
+    SetRotationZ(90, RotateZWall1);
+         
+    // right wall
+    SetTranslation(-floor_y, WALL_SIZE, 0, TranslateOriginWall2);
+    SetRotationX(0, RotateXWall2);
+    SetRotationY(0, RotateYWall2);
+    SetRotationZ(90, RotateZWall2);
+    
+    // back wall
+    SetTranslation(0, -WALL_SIZE, floor_y, TranslateOriginWall3);
+    SetRotationX(90, RotateXWall3);
+    SetRotationZ(0, RotateZWall3);
+    SetRotationY(0, RotateYWall3);
+        
     
     /* Translate and rotate box1 onto tip */
     SetTranslation(2, BOX1_START_POSITION_Y, 2, TranslateOriginBox1);
@@ -1173,7 +1321,28 @@ void Initialize(void)
     
     MultiplyMatrix(RotateXRoof, TranslateOriginRoof, InitialTransformRoof);
     MultiplyMatrix(RotateZRoof, InitialTransformRoof, InitialTransformRoof);
-     
+    
+    /* Walls and Floor*/
+    MultiplyMatrix(RotateXFloor, TranslateOriginFloor, InitialTransformFloor);
+    MultiplyMatrix(RotateZFloor, InitialTransformFloor, InitialTransformFloor);
+    MultiplyMatrix(InitialTransformFloor, ModelMatrixFloor, ModelMatrixFloor);
+    
+    MultiplyMatrix(RotateXWall1, TranslateOriginWall1, InitialTransformWall1);
+    MultiplyMatrix(RotateZWall1, InitialTransformWall1, InitialTransformWall1);
+    //MultiplyMatrix(RotateYWall1, InitialTransformWall1, InitialTransformWall1);
+    MultiplyMatrix(InitialTransformWall1, ModelMatrixWall1, ModelMatrixWall1);
+
+    MultiplyMatrix(RotateXWall2, TranslateOriginWall2, InitialTransformWall2);
+    MultiplyMatrix(RotateZWall2, InitialTransformWall2, InitialTransformWall2);
+   // MultiplyMatrix(RotateYWall2, InitialTransformWall2, InitialTransformWall2);
+    MultiplyMatrix(InitialTransformWall2, ModelMatrixWall2, ModelMatrixWall2);
+
+    MultiplyMatrix(RotateXWall3, TranslateOriginWall3, InitialTransformWall3);
+    MultiplyMatrix(RotateZWall3, InitialTransformWall3, InitialTransformWall3);
+    //MultiplyMatrix(RotateYWall3, InitialTransformWall3, InitialTransformWall3);
+    MultiplyMatrix(InitialTransformWall3, ModelMatrixWall3, ModelMatrixWall3);
+
+    
     MultiplyMatrix(RotateXBox1, TranslateOriginBox1, InitialTransformBox1);
     MultiplyMatrix(RotateZBox1, InitialTransformBox1, InitialTransformBox1);
     

@@ -2,12 +2,23 @@
 <configurationDescriptor version="95">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="." name="0">
-      <in>LoadShader.c</in>
-      <in>LoadShader.h</in>
-      <in>Matrix.c</in>
-      <in>Matrix.h</in>
+      <df name="build">
+      </df>
+      <df name="shaders">
+      </df>
+      <df name="source">
+        <in>List.c</in>
+        <in>List.h</in>
+        <in>LoadShader.c</in>
+        <in>LoadShader.h</in>
+        <in>Matrix.c</in>
+        <in>Matrix.h</in>
+        <in>OBJParser.c</in>
+        <in>OBJParser.h</in>
+        <in>StringExtra.c</in>
+        <in>StringExtra.h</in>
+      </df>
       <in>MerryGoRound.c</in>
-      <in>RotatingCube.c</in>
     </df>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
