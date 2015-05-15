@@ -352,11 +352,6 @@ GLushort pillar_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 
 void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
     
-  
-    /*	------------------------------------------------------------------------ */
-    /* Clear window; color specified in 'Initialize()' */
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    /*	------------------------------------------------------------------------ */
 
     glEnableVertexAttribArray(vPosition);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -413,10 +408,6 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
     glDisableVertexAttribArray(vPosition);
     glDisableVertexAttribArray(vColor);   
     
-    /*	--------------------------------------------------------------------------- */
-    /* Swap between front and back buffer */ 
-    // glutSwapBuffers();
-    /*	--------------------------------------------------------------------------- */
 }
 
 /*
