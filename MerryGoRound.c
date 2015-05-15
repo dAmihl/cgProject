@@ -62,6 +62,7 @@ GLuint GROUND_CBO;
 GLuint GROUND_IBO;
 
 
+
 /* Define handle to a vertex buffer object */
 GLuint HORSEBOX_VBO;
 
@@ -70,6 +71,8 @@ GLuint HORSEBOX_CBO;
 
 /* Define handle to an index buffer object */
 GLuint HORSEBOX_IBO;
+
+
 
 /* Define handle to a vertex buffer object */
 GLuint PILLAR_VBO;
@@ -209,8 +212,33 @@ const int CAMERA_FIXED_MOVE = 0;
 int cameraMode = 0;
 
 /* ------------------------------------ */
-float angle_factor = 1.0;
-int angle_direction = 1;
+float rotation_speed_factor = 1.0;
+int rotation_direction = 1;
+
+float updown_speed_factor = 1.0;
+
+float zoom = 1.0;
+
+
+
+/* Transformation matrices for model rotation */
+float RotationMatrixAnimX[16];
+float RotationMatrixAnimY[16];
+float RotationMatrixAnimZ[16];
+float RotationMatrixAnim[16];
+
+/* Variables for storing current rotation angles */
+float angleX, angleY, angleZ = 0.0f; 
+
+/* Indices to active rotation axes */
+enum {Xaxis=0, Yaxis=1, Zaxis=2};
+int axis = Yaxis;
+
+/* Indices to active triangle mesh */
+enum {Model1=0, Model2=1};
+int model = Model1; 
+
+
 /* ------------------------------------ */
 
 
@@ -485,6 +513,7 @@ void Mouse(int button, int state, int x, int y)
 		
 	    case GLUT_RIGHT_BUTTON: 
 	       // axis = Zaxis;
+		zoom = 1.0;
 		break;
 	}
 	//anim = GL_TRUE;
@@ -533,22 +562,26 @@ void Keyboard(unsigned char key, int x, int y)
     switch( key ) 
     {
 	/* --------------------------------------- */
+	// keys to manipulate the modle
+	// change speed and direction of rotation
 	case 'w':
-	    if (angle_factor < 3) angle_factor += 0.1;
+	    if (rotation_speed_factor < 2) rotation_speed_factor += 0.1;
+	    if (updown_speed_factor < 2) updown_speed_factor += 0.1;
 	    break;
 	    
 	case 's':
-	    if (angle_factor > 0) angle_factor = 0.1;
+	    if (rotation_speed_factor > 0) rotation_speed_factor -= 0.1;
+	    if (updown_speed_factor > 0) updown_speed_factor -= 0.1;
 	    break;
 	case 'a':
-	    angle_direction = 1;
+	    rotation_direction = 1;
 	    break;
 	    
 	case 'd':
-	    angle_direction = -1;
+	    rotation_direction = -1;
 	    break;
 	/* --------------------------------------- */
-	
+	// keys to manipulate the camera
 	/* Activate camera mode fixed or free */
 	case '1': 
             cameraMode = CAMERA_FIXED_MOVE;
@@ -567,21 +600,50 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 
 	/* Reset initial rotation of object */
-	case 'o':
-	    /*SetIdentityMatrix(RotationMatrixAnimX);
+	/*
+	 case 'o':
+	    SetIdentityMatrix(RotationMatrixAnimX);
 	    SetIdentityMatrix(RotationMatrixAnimY);
 	    SetIdentityMatrix(RotationMatrixAnimZ);
 	    angleX = 0.0;
 	    angleY = 0.0;
-	    angleZ = 0.0;*/
+	    angleZ = 0.0;
 	    break;
-	    
+	 */   
+	 case 'o':
+	   /* Initialize matrices */
+	  // SetIdentityMatrix(ProjectionMatrix);
+	  // SetIdentityMatrix(ViewMatrix);
+	  // SetIdentityMatrix(ModelMatrixGround);
+	  // SetIdentityMatrix(ModelMatrixPillar);
+	  // SetIdentityMatrix(ModelMatrixRoof);
+	  //SetIdentityMatrix(ModelMatrixBox1);
+	  //SetIdentityMatrix(ModelMatrixBox2);
+	  //SetIdentityMatrix(ModelMatrixBox3);
+	  //SetIdentityMatrix(ModelMatrixBox4);
+    
+	  //SetIdentityMatrix(SuzanneMatrix1);
+	  //SetIdentityMatrix(SuzanneMatrix2);
+	  //SetIdentityMatrix(SuzanneMatrix3);
+	  //SetIdentityMatrix(SuzanneMatrix4);
+    
+	  BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
+	  BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
+	  BOX3_CURRENT_POSITION_Y = BOX3_START_POSITION_Y;
+	  BOX4_CURRENT_POSITION_Y = BOX4_START_POSITION_Y;
+	  
+	  rotation_speed_factor = 1.0;
+	  rotation_direction = 1;
+	  updown_speed_factor = 1.0;
+	  
+	  break;
+	  
 	case 'q': case 'Q':  
 	    exit(0);    
 		break;
     }
 
-    glutPostRedisplay();
+    //glutPostRedisplay();
 }
 
 
@@ -617,8 +679,9 @@ void OnIdle()
 	/* SetUp Rotation matrices */
     float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI);
     
-    angle *= angle_factor;
-    angle *= angle_direction;
+    angle *= rotation_speed_factor;
+    angle *= rotation_direction;
+   
     
     float RotationMatrixAnimGround[16];
     float RotationMatrixAnimPillar[16];
@@ -648,6 +711,7 @@ void OnIdle()
     BOX4_CURRENT_UPDOWN_DIRECTION = (BOX4_CURRENT_POSITION_Y > 2 ? -1 : (BOX4_CURRENT_POSITION_Y < 0 ? 1 : BOX4_CURRENT_UPDOWN_DIRECTION));
 
     float updown = 3.f * deltaTime/1000;
+    updown *= updown_speed_factor;
     
     BOX1_CURRENT_POSITION_Y += updown * BOX1_CURRENT_UPDOWN_DIRECTION;
     BOX2_CURRENT_POSITION_Y += updown * BOX2_CURRENT_UPDOWN_DIRECTION;
