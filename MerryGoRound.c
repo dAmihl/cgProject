@@ -540,6 +540,13 @@ void Keyboard(unsigned char key, int x, int y)
 	case 's':
 	    if (angle_factor > 0) angle_factor = 0.1;
 	    break;
+	case 'a':
+	    angle_direction = 1;
+	    break;
+	    
+	case 'd':
+	    angle_direction = -1;
+	    break;
 	/* --------------------------------------- */
 	
 	/* Activate camera mode fixed or free */
