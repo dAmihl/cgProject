@@ -26,7 +26,8 @@
 
 #define BOX1_SIZE 0.3
 #define BOX1_HEIGHT 1.0
-
+*/
+    
 #define PILLAR_SIZE 0.5
 #define PILLAR_HEIGHT 2
 
@@ -123,6 +124,7 @@ GLuint ShaderProgram;
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */ 
 float camera_disp = -25.0;
+float camera_aproach = 10.0;
 
 const int CAMERA_FREE_MOVE = 1;
 const int CAMERA_FIXED_MOVE = 0;
@@ -503,7 +505,7 @@ void Display()
 
 void Mouse(int button, int state, int x, int y) 
 {
-    float correction_factor = 1 / 100000;
+    float correction_factor = 1 / 10;
     
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
@@ -554,9 +556,15 @@ void Mouse(int button, int state, int x, int y)
 
 void MouseMove(int x, int y) 
 {
+    float correction_factor = 1 / 10;
+    
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
     
+    mouseDeltaX *= correction_factor;
+    mouseDeltaY *= correction_factor;
+    
+   // printf("x: %i, y: %i\n",mouseDeltaX, mouseDeltaY );
     
     MOUSE_OLD_X_POS = x;
     MOUSE_OLD_Y_POS = y;
@@ -600,7 +608,7 @@ void Keyboard(unsigned char key, int x, int y)
 	// keys to manipulate the camera
 	/* Activate camera mode fixed or free */
 	case '1': 
-            cameraMode = CAMERA_FIXED_MOVE;
+		cameraMode = CAMERA_FIXED_MOVE;
 		break;
 
 	case '2':
@@ -627,21 +635,6 @@ void Keyboard(unsigned char key, int x, int y)
 	    break;
 	 */   
 	 case 'o':
-	   /* Initialize matrices */
-	  // SetIdentityMatrix(ProjectionMatrix);
-	  // SetIdentityMatrix(ViewMatrix);
-	  // SetIdentityMatrix(ModelMatrixGround);
-	  // SetIdentityMatrix(ModelMatrixPillar);
-	  // SetIdentityMatrix(ModelMatrixRoof);
-	  //SetIdentityMatrix(ModelMatrixBox1);
-	  //SetIdentityMatrix(ModelMatrixBox2);
-	  //SetIdentityMatrix(ModelMatrixBox3);
-	  //SetIdentityMatrix(ModelMatrixBox4);
-    
-	  //SetIdentityMatrix(SuzanneMatrix1);
-	  //SetIdentityMatrix(SuzanneMatrix2);
-	  //SetIdentityMatrix(SuzanneMatrix3);
-	  //SetIdentityMatrix(SuzanneMatrix4);
     
 	  BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
 	  BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
@@ -682,9 +675,12 @@ void OnIdle()
         float RotationMatrixAnimMouseY[16];
         float RotationMatrixAnimMouseZ[16];
 	
+	
+	
 	/* ------------------------------------------ */
 	 // SetIdentityMatrix(RotationMatrixAnimMouseZ);
 	/* ------------------------------------------ */
+	float rotatey = mouseDeltaY / 180 * 3.141592654f
         SetRotationX(-mouseDeltaY, RotationMatrixAnimMouseX);
         SetRotationY(-mouseDeltaX, RotationMatrixAnimMouseY);
         SetRotationZ(0, RotationMatrixAnimMouseZ);
@@ -693,6 +689,9 @@ void OnIdle()
         MultiplyMatrix(RotationMatrixAnimMouseY, ViewMatrix, ViewMatrix);
         MultiplyMatrix(RotationMatrixAnimMouseZ, ViewMatrix, ViewMatrix);
     }// 1 4 5
+    else {
+     // empty
+    }
     
     
 	/* SetUp Rotation matrices */
@@ -1118,6 +1117,7 @@ void Initialize(void)
     //float camera_disp = -15.0;
     SetTranslation(0.0, 0.0, camera_disp, ViewMatrix);
 
+    
     /* Translate and rotate ground onto tip */
     SetTranslation(0, 0, 0, TranslateOriginGround);
     SetRotationX(0, RotateXGround);

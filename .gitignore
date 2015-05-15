@@ -1,7 +1,7 @@
 # Object files
 *.o
 *.ko
-*.obj
+#*.obj
 *.elf
 
 # Precompiled Headers
@@ -32,6 +32,6 @@
 
 # ide
 *.kdev4
-
+.*kate-swap
 # the compiled file
 MerryGoRound
