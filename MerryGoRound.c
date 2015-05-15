@@ -26,7 +26,7 @@
 
 #define BOX1_SIZE 0.3
 #define BOX1_HEIGHT 1.0
-*/
+
     
 #define PILLAR_SIZE 0.5
 #define PILLAR_HEIGHT 2
@@ -680,7 +680,7 @@ void OnIdle()
 	/* ------------------------------------------ */
 	 // SetIdentityMatrix(RotationMatrixAnimMouseZ);
 	/* ------------------------------------------ */
-	float rotatey = mouseDeltaY / 180 * 3.141592654f
+	float rotatey = mouseDeltaY / 180 * 3.141592654f;
         SetRotationX(-mouseDeltaY, RotationMatrixAnimMouseX);
         SetRotationY(-mouseDeltaX, RotationMatrixAnimMouseY);
         SetRotationZ(0, RotationMatrixAnimMouseZ);
