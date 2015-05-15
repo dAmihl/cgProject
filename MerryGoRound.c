@@ -63,13 +63,13 @@ GLuint GROUND_IBO;
 
 
 /* Define handle to a vertex buffer object */
-GLuint BOX1_VBO;
+GLuint HORSEBOX_VBO;
 
 /* Define handle to a color buffer object */
-GLuint BOX1_CBO; 
+GLuint HORSEBOX_CBO; 
 
 /* Define handle to an index buffer object */
-GLuint BOX1_IBO;
+GLuint HORSEBOX_IBO;
 
 /* Define handle to a vertex buffer object */
 GLuint PILLAR_VBO;
@@ -94,10 +94,10 @@ GLushort *index_buffer_suzanne;
 obj_scene_data suzanne_data;
 
 /* Define handles to two vertex buffer objects */
-GLuint VBO1;
+GLuint SUZANNE_VBO;
 
 /* Define handles to two index buffer objects */
-GLuint IBO1;
+GLuint SUZANNE_IBO;
 
 /* ------------------------------------------------------------------------- */
 
@@ -352,15 +352,22 @@ GLushort pillar_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 
 void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
     
+  
+    /*	------------------------------------------------------------------------ */
+    /* Clear window; color specified in 'Initialize()' */
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    /*	------------------------------------------------------------------------ */
 
     glEnableVertexAttribArray(vPosition);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+    /*
     glEnableVertexAttribArray(vColor);
     glBindBuffer(GL_ARRAY_BUFFER, CBO);
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);   
-
+    */
+    
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     
     GLint size; 
@@ -390,14 +397,26 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
         exit(-1);
     }
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrix);  
+    
+    /*	-------------------------------------------------------------------------- */
+    /* Set state to only draw wireframe (no lighting used, yet) */
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     /* Issue draw command, using indexed triangle list */
     glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
+    /* Issue draw command, using indexed triangle list */
+    glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    /*	--------------------------------------------------------------------------- */
     
     /* Disable attributes */
     glDisableVertexAttribArray(vPosition);
     glDisableVertexAttribArray(vColor);   
+    
+    /*	--------------------------------------------------------------------------- */
+    /* Swap between front and back buffer */ 
+    // glutSwapBuffers();
+    /*	--------------------------------------------------------------------------- */
 }
 
 /*
@@ -419,16 +438,16 @@ void Display()
     DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixGround);
     DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
     DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
-    DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox1);
+    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox1);
     //DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, SuzanMatrix);
-    DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox2);
-    DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox3);
-    DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, ModelMatrixBox4);
+    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox2);
+    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox3);
+    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox4);
     
-    DrawObject(VBO1, BOX1_CBO, IBO1, SuzanneMatrix1);
-    DrawObject(VBO1, BOX1_CBO, IBO1, SuzanneMatrix2);
-    DrawObject(VBO1, BOX1_CBO, IBO1, SuzanneMatrix3);
-    DrawObject(VBO1, BOX1_CBO, IBO1, SuzanneMatrix4);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix1);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix2);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix3);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix4);
 
 
     /* Swap between front and back buffer */ 
@@ -704,16 +723,16 @@ void SetupDataBuffers()
 
     /* Horse shape*/
     /* */
-    glGenBuffers(1, &BOX1_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, BOX1_VBO);
+    glGenBuffers(1, &HORSEBOX_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, HORSEBOX_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(box1_vertex_buffer_data), box1_vertex_buffer_data, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &BOX1_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BOX1_IBO);
+    glGenBuffers(1, &HORSEBOX_IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HORSEBOX_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(box1_index_buffer_data), box1_index_buffer_data, GL_STATIC_DRAW);
     /* */
-    glGenBuffers(1, &BOX1_CBO);
-    glBindBuffer(GL_ARRAY_BUFFER, BOX1_CBO);
+    glGenBuffers(1, &HORSEBOX_CBO);
+    glBindBuffer(GL_ARRAY_BUFFER, HORSEBOX_CBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(box1_color_buffer_data), box1_color_buffer_data, GL_STATIC_DRAW);
       
     
@@ -734,13 +753,13 @@ void SetupDataBuffers()
  /* -------------------------------------------------------------------------*/
  /*         Added for exercise 2                                             */
    
-    glGenBuffers(1, &VBO1);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+    glGenBuffers(1, &SUZANNE_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_VBO);
     glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_count*3*sizeof(GLfloat), vertex_buffer_suzanne, GL_STATIC_DRAW);
 
     
-    glGenBuffers(1, &IBO1);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO1);
+    glGenBuffers(1, &SUZANNE_IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLushort), index_buffer_suzanne, GL_STATIC_DRAW);
  
  /*
