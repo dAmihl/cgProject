@@ -126,6 +126,8 @@ float ViewMatrix[16]; /* Camera view matrix */
 float camera_disp = -25.0;
 float camera_aproach = 10.0;
 
+GLboolean anim = GL_TRUE;
+
 const int CAMERA_FREE_MOVE = 1;
 const int CAMERA_FIXED_MOVE = 0;
 int cameraMode = 0;
@@ -505,13 +507,13 @@ void Display()
 
 void Mouse(int button, int state, int x, int y) 
 {
-    float correction_factor = 1 / 10;
+    // float correction_factor = 1 / 10;
     
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
     
-    mouseDeltaX *= correction_factor;
-    mouseDeltaY *= correction_factor;
+    // mouseDeltaX *= correction_factor;
+    // mouseDeltaY *= correction_factor;
     
     //printf("x: %i, y: %i\n",mouseDeltaX, mouseDeltaY );
     
@@ -522,19 +524,19 @@ void Mouse(int button, int state, int x, int y)
         switch(button) 
 	{
 	    case GLUT_LEFT_BUTTON:    
-	        //axis = Xaxis;
+	        axis = Xaxis;
 		break;
 
 	    case GLUT_MIDDLE_BUTTON:  
-  	        //axis = Yaxis;
+  	        axis = Yaxis;
 	        break;
 		
 	    case GLUT_RIGHT_BUTTON: 
-	       // axis = Zaxis;
+	        axis = Zaxis;
 		zoom = 1.0;
 		break;
 	}
-	//anim = GL_TRUE;
+	// anim = GL_TRUE;
     }
     
     
@@ -556,13 +558,13 @@ void Mouse(int button, int state, int x, int y)
 
 void MouseMove(int x, int y) 
 {
-    float correction_factor = 1 / 10;
+    // float correction_factor = 1 / 10;
     
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
     
-    mouseDeltaX *= correction_factor;
-    mouseDeltaY *= correction_factor;
+    // mouseDeltaX *= correction_factor;
+    // mouseDeltaY *= correction_factor;
     
    // printf("x: %i, y: %i\n",mouseDeltaX, mouseDeltaY );
     
@@ -609,10 +611,12 @@ void Keyboard(unsigned char key, int x, int y)
 	/* Activate camera mode fixed or free */
 	case '1': 
 		cameraMode = CAMERA_FIXED_MOVE;
+		anim = GL_TRUE;
 		break;
 
 	case '2':
-		cameraMode = CAMERA_FREE_MOVE;	
+		cameraMode = CAMERA_FREE_MOVE;
+		anim = GL_FALSE;
 		break;
 
 	/* Toggle animation */
@@ -669,6 +673,7 @@ void OnIdle()
 {
     
     computeDeltaTime();
+    float distance_aproached_dt = 0.0;
     
     if (cameraMode == CAMERA_FREE_MOVE){
         float RotationMatrixAnimMouseX[16];
@@ -680,17 +685,27 @@ void OnIdle()
 	/* ------------------------------------------ */
 	 // SetIdentityMatrix(RotationMatrixAnimMouseZ);
 	/* ------------------------------------------ */
-	float rotatey = mouseDeltaY / 180 * 3.141592654f;
+	//float rotateX = mouseDeltaX / 180 * 3.141592654f;
+	// float rotateY = mouseDeltaY / 180 * 3.141592654f;
         SetRotationX(-mouseDeltaY, RotationMatrixAnimMouseX);
         SetRotationY(-mouseDeltaX, RotationMatrixAnimMouseY);
-        SetRotationZ(0, RotationMatrixAnimMouseZ);
+        //SetRotationX(-rotateY, RotationMatrixAnimMouseX);
+        //SetRotationY(-rotateX, RotationMatrixAnimMouseY);
+	SetRotationZ(0, RotationMatrixAnimMouseZ);
         
         MultiplyMatrix(RotationMatrixAnimMouseX, ViewMatrix, ViewMatrix);
         MultiplyMatrix(RotationMatrixAnimMouseY, ViewMatrix, ViewMatrix);
         MultiplyMatrix(RotationMatrixAnimMouseZ, ViewMatrix, ViewMatrix);
     }// 1 4 5
     else {
-     // empty
+      /*
+     while(camera_aproach > 0) {
+        distance_aproached_dt = 0.001 * deltaTime/1000;
+	SetTranslation(0.0,0.0,distance_aproached_dt,ViewMatrix);
+	camera_aproach = camera_aproach - distance_aproached_dt;
+	printf("ds: %f\n", distance_aproached_dt);
+     }
+     */
     }
     
     
@@ -742,7 +757,58 @@ void OnIdle()
     SetTranslation(0, BOX4_CURRENT_POSITION_Y, 0, UpDownTranslationBox4);
 
     
-
+    if(anim) {
+    /* Increment rotation angles and update matrix */
+        if(axis == Xaxis)
+	{
+  	    angleX = fmod(angleX + deltaTime/20.0, 360.0);  
+	    SetRotationX(angleX, RotationMatrixCameraX);
+	}
+	else if(axis == Yaxis)
+	{
+	    angleY = fmod(angleY + deltaTime/20.0, 360.0); 
+	    SetRotationY(angleY, RotationMatrixCameraY);  
+	}
+	else if(axis == Zaxis)
+	{			
+	    angleZ = fmod(angleZ + deltaTime/20.0, 360.0); 
+	    SetRotationZ(angleZ, RotationMatrixCameraZ);
+	}
+    }
+    else {
+          if(axis == Xaxis)
+	{
+  	    angleX = fmod(angleX + mouseDeltaX/20.0, 360.0);  
+	    SetRotationX(angleX, RotationMatrixCameraX);
+	}
+	else if(axis == Yaxis)
+	{
+	    angleY = fmod(angleY + mouseDeltaY/20.0, 360.0); 
+	    SetRotationY(angleY, RotationMatrixCameraY);  
+	}
+	else if(axis == Zaxis)
+	{			
+	    angleZ = fmod(angleZ + mouseDeltaX/20.0, 360.0); 
+	    SetRotationZ(angleZ, RotationMatrixCameraZ);
+	}
+    }
+    /* Update of transformation matrices 
+     * Note order of transformations and rotation of reference axes */
+    MultiplyMatrix(RotationMatrixCameraX, RotationMatrixCameraY, RotationMatrixCamera);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox1);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox2);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox3);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox4);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimGround);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimPillar);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimRoof);
+    /*
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix1);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix2);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix3);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix4);
+    */
+    
     
 
     /* Apply model rotation; finally move cube down */
@@ -789,6 +855,41 @@ void OnIdle()
     MultiplyMatrix(RotationMatrixAnimBox4, InitialTransformBox4, SuzanneMatrix4);
     MultiplyMatrix(UpDownTranslationBox4, SuzanneMatrix4, SuzanneMatrix4);
     MultiplyMatrix(TranslateDownBox4, SuzanneMatrix4, SuzanneMatrix4);
+    
+    
+    /* Increment rotation angles and update matrix */
+        if(axis == Xaxis)
+	{
+  	    angleX = fmod(angleX + deltaTime/20.0, 360.0);  
+	    SetRotationX(angleX, RotationMatrixCameraX);
+	}
+	else if(axis == Yaxis)
+	{
+	    angleY = fmod(angleY + deltaTime/20.0, 360.0); 
+	    SetRotationY(angleY, RotationMatrixCameraY);  
+	}
+	else if(axis == Zaxis)
+	{			
+	    angleZ = fmod(angleZ + deltaTime/20.0, 360.0); 
+	    SetRotationZ(angleZ, RotationMatrixCameraZ);
+	}
+    
+    /* Update of transformation matrices 
+     * Note order of transformations and rotation of reference axes */
+    MultiplyMatrix(RotationMatrixCameraX, RotationMatrixCameraY, RotationMatrixCamera);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox1);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox2);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox3);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox4);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimGround);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimPillar);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimRoof);
+    /*
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix1);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix2);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix3);
+    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix4);
+    */
     
     
     /* ---------------------------------------------------------------------------- */
@@ -872,7 +973,7 @@ void SetupDataBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, VBO1);
     glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_count*3*sizeof(GLfloat), vertex_buffer_suzanne, GL_STATIC_DRAW);
 
-    
+   
     glGenBuffers(1, &BOX1_IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO1);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLushort), index_buffer_suzanne, GL_STATIC_DRAW);
