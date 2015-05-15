@@ -20,6 +20,7 @@
 */
 #define USES_MESA_DRIVER 1
 
+
 #define GROUND_SIZE 3.0
 #define GROUND_HEIGHT 0.2
 
@@ -28,6 +29,7 @@
 
 #define PILLAR_SIZE 0.5
 #define PILLAR_HEIGHT 2
+
 
 /* Standard includes */
 #include <stdio.h>
@@ -49,7 +51,6 @@
 /*----------------------------------------------------------------*/
 /* Define handle to a vertex array object (only for MESA USE) */
 GLuint VAO;
-
 
 
 /* Define handle to a vertex buffer object */
@@ -84,8 +85,8 @@ GLuint PILLAR_CBO;
 GLuint PILLAR_IBO;
 
 
-/* ------------------------------------------------------------------------- */
-/*      Added for exercise 2                                                 */
+
+/* for the loaded OBJ */
 
 /* Arrays for holding vertex data of the model */
 GLfloat *vertex_buffer_suzanne;
@@ -102,11 +103,14 @@ GLuint SUZANNE_VBO;
 /* Define handles to two index buffer objects */
 GLuint SUZANNE_IBO;
 
-/* ------------------------------------------------------------------------- */
+
+
 
 
 /* Indices to vertex attributes; in this case positon and color */ 
 enum DataID {vPosition = 0, vColor = 1}; 
+
+
 
 /* Strings for loading and storing shader code */
 static const char* VertexShaderString;
@@ -115,12 +119,20 @@ static const char* FragmentShaderString;
 GLuint ShaderProgram;
 
 
+
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */ 
+float camera_disp = -25.0;
 
-float ModelMatrixGround[16]; /* Model matrix for the ground*/
-float ModelMatrixRoof[16]; /* Model matrix for the roof */
-float ModelMatrixPillar[16]; /* Model matrix for the pillar */
+const int CAMERA_FREE_MOVE = 1;
+const int CAMERA_FIXED_MOVE = 0;
+int cameraMode = 0;
+
+
+
+float ModelMatrixGround[16];	/* Model matrix for the ground layer */
+float ModelMatrixRoof[16];	/* Model matrix for the roof (top layer) */
+float ModelMatrixPillar[16];	/* Model matrix for the pillar */
 
 float ModelMatrixBox1[16]; /*Model matrix for box1*/
 float ModelMatrixBox2[16]; /*Model matrix for box2*/
@@ -161,14 +173,12 @@ float RotateZBox1[16];
 float InitialTransformBox1[16];
 float UpDownTranslationBox1[16];
 
-
 float TranslateOriginBox2[16];
 float TranslateDownBox2[16];
 float RotateXBox2[16];
 float RotateZBox2[16];
 float InitialTransformBox2[16];
 float UpDownTranslationBox2[16];
-
 
 float TranslateOriginBox3[16];
 float TranslateDownBox3[16];
@@ -200,16 +210,14 @@ int BOX2_CURRENT_UPDOWN_DIRECTION = 1;
 int BOX3_CURRENT_UPDOWN_DIRECTION = -1;
 int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
+
+
 int MOUSE_OLD_X_POS = 0;
 int MOUSE_OLD_Y_POS = 0;
 
 int mouseDeltaX = 0;
 int mouseDeltaY = 0;
 
-
-const int CAMERA_FREE_MOVE = 1;
-const int CAMERA_FIXED_MOVE = 0;
-int cameraMode = 0;
 
 /* ------------------------------------ */
 float rotation_speed_factor = 1.0;
@@ -221,11 +229,11 @@ float zoom = 1.0;
 
 
 
-/* Transformation matrices for model rotation */
-float RotationMatrixAnimX[16];
-float RotationMatrixAnimY[16];
-float RotationMatrixAnimZ[16];
-float RotationMatrixAnim[16];
+/* Transformation matrices for camera rotation */
+float RotationMatrixCameraX[16];
+float RotationMatrixCameraY[16];
+float RotationMatrixCameraZ[16];
+float RotationMatrixCamera[16];
 
 /* Variables for storing current rotation angles */
 float angleX, angleY, angleZ = 0.0f; 
@@ -248,6 +256,7 @@ int deltaTime = 0;
 int oldTimeSinceStart = 0;
 
 void computeDeltaTime();
+
 
 
 /*
@@ -461,7 +470,7 @@ void Display()
 {
     /* Clear window; color specified in 'Initialize()' */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    
     DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixGround);
     DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
     DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
@@ -494,8 +503,15 @@ void Display()
 
 void Mouse(int button, int state, int x, int y) 
 {
+    float correction_factor = 1 / 100000;
+    
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
+    
+    mouseDeltaX *= correction_factor;
+    mouseDeltaY *= correction_factor;
+    
+    //printf("x: %i, y: %i\n",mouseDeltaX, mouseDeltaY );
     
     if(state == GLUT_DOWN) 
     {
@@ -643,7 +659,7 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
     }
 
-    //glutPostRedisplay();
+    glutPostRedisplay();
 }
 
 
@@ -665,7 +681,10 @@ void OnIdle()
         float RotationMatrixAnimMouseX[16];
         float RotationMatrixAnimMouseY[16];
         float RotationMatrixAnimMouseZ[16];
-
+	
+	/* ------------------------------------------ */
+	 // SetIdentityMatrix(RotationMatrixAnimMouseZ);
+	/* ------------------------------------------ */
         SetRotationX(-mouseDeltaY, RotationMatrixAnimMouseX);
         SetRotationY(-mouseDeltaX, RotationMatrixAnimMouseY);
         SetRotationZ(0, RotationMatrixAnimMouseZ);
@@ -682,7 +701,7 @@ void OnIdle()
     angle *= rotation_speed_factor;
     angle *= rotation_direction;
    
-    
+
     float RotationMatrixAnimGround[16];
     float RotationMatrixAnimPillar[16];
     float RotationMatrixAnimRoof[16];
@@ -772,6 +791,7 @@ void OnIdle()
     MultiplyMatrix(UpDownTranslationBox4, SuzanneMatrix4, SuzanneMatrix4);
     MultiplyMatrix(TranslateDownBox4, SuzanneMatrix4, SuzanneMatrix4);
     
+    
     /* ---------------------------------------------------------------------------- */
 
     /* Request redrawing forof window content */  
@@ -791,6 +811,8 @@ void OnIdle()
 
 void SetupDataBuffers()
 {
+    
+  
     /*Ground Shape */
     glGenBuffers(1, &GROUND_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, GROUND_VBO);
@@ -1054,9 +1076,12 @@ void Initialize(void)
     /* Initialize matrices */
     SetIdentityMatrix(ProjectionMatrix);
     SetIdentityMatrix(ViewMatrix);
+    
+
     SetIdentityMatrix(ModelMatrixGround);
     SetIdentityMatrix(ModelMatrixPillar);
     SetIdentityMatrix(ModelMatrixRoof);
+    
     SetIdentityMatrix(ModelMatrixBox1);
     SetIdentityMatrix(ModelMatrixBox2);
     SetIdentityMatrix(ModelMatrixBox3);
@@ -1066,6 +1091,11 @@ void Initialize(void)
     SetIdentityMatrix(SuzanneMatrix2);
     SetIdentityMatrix(SuzanneMatrix3);
     SetIdentityMatrix(SuzanneMatrix4);
+    
+    SetIdentityMatrix(RotationMatrixCameraX);
+    SetIdentityMatrix(RotationMatrixCameraY);
+    SetIdentityMatrix(RotationMatrixCameraZ);
+    SetIdentityMatrix(RotationMatrixCamera);
     
     BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
     BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
@@ -1085,7 +1115,7 @@ void Initialize(void)
     SetPerspectiveMatrix(fovy, aspect, nearPlane, farPlane, ProjectionMatrix);
 
     /* Set viewing transform */
-    float camera_disp = -15.0;
+    //float camera_disp = -15.0;
     SetTranslation(0.0, 0.0, camera_disp, ViewMatrix);
 
     /* Translate and rotate ground onto tip */
@@ -1100,6 +1130,8 @@ void Initialize(void)
     SetTranslation(0, 2, 0, TranslateOriginPillar);
     SetRotationX(0, RotateXPillar);
     SetRotationZ(0, RotateZPillar);
+    
+
     
 
     
@@ -1120,7 +1152,7 @@ void Initialize(void)
     SetRotationX(0, RotateXBox4);
     SetRotationZ(0, RotateZBox4);
     
-    /* Translate down */	
+    /* Translate down */
     SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownGround);
     SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownPillar);
     SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownRoof);
@@ -1132,7 +1164,7 @@ void Initialize(void)
 
 
 
-    /* Initial transformation matrix */
+    /* Initial transformation matrix */    
     MultiplyMatrix(RotateXGround, TranslateOriginGround, InitialTransformGround);
     MultiplyMatrix(RotateZGround, InitialTransformGround, InitialTransformGround);
     
