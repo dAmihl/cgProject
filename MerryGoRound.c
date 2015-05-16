@@ -147,6 +147,11 @@ const int CAMERA_FREE_MOVE = 1;
 const int CAMERA_FIXED_MOVE = 0;
 int cameraMode = 0;
 
+GLboolean camMoveForward = GL_FALSE;
+GLboolean camMoveBack = GL_FALSE;
+GLboolean camMoveLeft = GL_FALSE;
+GLboolean camMoveRight = GL_FALSE;
+
 
 
 float ModelMatrixGround[16];	/* Model matrix for the ground layer */
@@ -667,6 +672,7 @@ void MouseMove(int x, int y)
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
     
+
     // mouseDeltaX *= correction_factor;
     // mouseDeltaY *= correction_factor;
     
@@ -697,18 +703,22 @@ void Keyboard(unsigned char key, int x, int y)
 	case 'w':
 	    if (rotation_speed_factor < 2) rotation_speed_factor += 0.1;
 	    if (updown_speed_factor < 2) updown_speed_factor += 0.1;
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveForward = GL_TRUE;
 	    break;
 	    
 	case 's':
 	    if (rotation_speed_factor > 0) rotation_speed_factor -= 0.1;
 	    if (updown_speed_factor > 0) updown_speed_factor -= 0.1;
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveBack = GL_TRUE;
 	    break;
 	case 'a':
 	    rotation_direction = 1;
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveLeft = GL_TRUE;
 	    break;
 	    
 	case 'd':
 	    rotation_direction = -1;
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveRight = GL_TRUE;
 	    break;
 	/* --------------------------------------- */
 	// keys to manipulate the camera
@@ -764,6 +774,31 @@ void Keyboard(unsigned char key, int x, int y)
 }
 
 
+void KeyboardUp(unsigned char key, int x, int y)   
+{
+    switch( key ) 
+    {
+	/* --------------------------------------- */
+	// keys to manipulate the modle
+	// change speed and direction of rotation
+	case 'w':
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveForward = GL_FALSE;
+	    break;
+	    
+	case 's':
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveBack = GL_FALSE;
+	    break;
+	case 'a':
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveLeft = GL_FALSE;
+	    break;
+	    
+	case 'd':
+            if (cameraMode == CAMERA_FREE_MOVE) camMoveRight = GL_FALSE;
+	    break;
+    }
+}
+
+
 
 /******************************************************************
 *
@@ -778,12 +813,12 @@ void OnIdle()
     
     computeDeltaTime();
     float distance_aproached_dt = 0.0;
-    
+
     if (cameraMode == CAMERA_FREE_MOVE){
         float RotationMatrixAnimMouseX[16];
         float RotationMatrixAnimMouseY[16];
         float RotationMatrixAnimMouseZ[16];
-	
+	float TranslationMatrixMouse[16];
 	
 	
 	/* ------------------------------------------ */
@@ -791,8 +826,8 @@ void OnIdle()
 	/* ------------------------------------------ */
 	//float rotateX = mouseDeltaX / 180 * 3.141592654f;
 	// float rotateY = mouseDeltaY / 180 * 3.141592654f;
-        SetRotationX(-mouseDeltaY, RotationMatrixAnimMouseX);
-        SetRotationY(-mouseDeltaX, RotationMatrixAnimMouseY);
+        SetRotationX(mouseDeltaY, RotationMatrixAnimMouseX);
+        SetRotationY(mouseDeltaX, RotationMatrixAnimMouseY);
         //SetRotationX(-rotateY, RotationMatrixAnimMouseX);
         //SetRotationY(-rotateX, RotationMatrixAnimMouseY);
 	SetRotationZ(0, RotationMatrixAnimMouseZ);
@@ -800,6 +835,34 @@ void OnIdle()
         MultiplyMatrix(RotationMatrixAnimMouseX, ViewMatrix, ViewMatrix);
         MultiplyMatrix(RotationMatrixAnimMouseY, ViewMatrix, ViewMatrix);
         MultiplyMatrix(RotationMatrixAnimMouseZ, ViewMatrix, ViewMatrix);
+        
+        mouseDeltaY = 0;
+        mouseDeltaX = 0;
+        
+        /* WASD Movement*/
+        float camMoveX = 0;
+        float camMoveY = 0;
+        float camMoveZ = 0;
+        
+        int camMoveSpeed = 1;
+        
+        if (camMoveForward == GL_TRUE){
+            camMoveZ = camMoveSpeed;
+        }
+        
+        if (camMoveBack == GL_TRUE){
+            camMoveZ = -camMoveSpeed;
+        }
+        
+        if (camMoveLeft == GL_TRUE){
+            camMoveX = camMoveSpeed;
+        }
+        
+        if (camMoveRight == GL_TRUE){
+            camMoveX = -camMoveSpeed;
+        }
+        SetTranslation(camMoveX, camMoveY, camMoveZ, TranslationMatrixMouse);
+        MultiplyMatrix(TranslationMatrixMouse, ViewMatrix, ViewMatrix);
     }// 1 4 5
     else {
       /*
@@ -1503,6 +1566,7 @@ int main(int argc, char** argv)
     glutIdleFunc(OnIdle);
     glutDisplayFunc(Display);
     glutKeyboardFunc(Keyboard); 
+    glutKeyboardUpFunc(KeyboardUp);
     glutMouseFunc(Mouse);
     glutPassiveMotionFunc(MouseMove);
     glutMainLoop();

@@ -4,6 +4,8 @@
     <df root="." name="0">
       <df name="build">
       </df>
+      <df name="models">
+      </df>
       <df name="shaders">
       </df>
       <df name="source">
