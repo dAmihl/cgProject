@@ -293,6 +293,11 @@ float zoom = 1.0;
 
 
 /* Transformation matrices for camera rotation */
+float TranslationMatrixCameraX[16];
+float TranslationMatrixCameraY[16];
+float TranslationMatrixCameraZ[16];
+float TranslationMatrixCamera[16];
+
 float RotationMatrixCameraX[16];
 float RotationMatrixCameraY[16];
 float RotationMatrixCameraZ[16];
@@ -620,11 +625,7 @@ void Mouse(int button, int state, int x, int y)
     
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
-    
-    // mouseDeltaX *= correction_factor;
-    // mouseDeltaY *= correction_factor;
-    
-    //printf("x: %i, y: %i\n",mouseDeltaX, mouseDeltaY );
+
     
     if(state == GLUT_DOWN) 
     {
@@ -666,17 +667,9 @@ void Mouse(int button, int state, int x, int y)
 *******************************************************************/
 
 void MouseMove(int x, int y) 
-{
-    // float correction_factor = 1 / 10;
-    
+{    
     mouseDeltaX = x - MOUSE_OLD_X_POS;
     mouseDeltaY = y - MOUSE_OLD_Y_POS;
-    
-
-    // mouseDeltaX *= correction_factor;
-    // mouseDeltaY *= correction_factor;
-    
-   // printf("x: %i, y: %i\n",mouseDeltaX, mouseDeltaY );
     
     MOUSE_OLD_X_POS = x;
     MOUSE_OLD_Y_POS = y;
@@ -733,25 +726,7 @@ void Keyboard(unsigned char key, int x, int y)
 		anim = GL_FALSE;
 		break;
 
-	/* Toggle animation */
-	case '0':
-		/*if (anim)
-			anim = GL_FALSE;		
-		else
-			anim = GL_TRUE;*/
-		break;
-
-	/* Reset initial rotation of object */
-	/*
-	 case 'o':
-	    SetIdentityMatrix(RotationMatrixAnimX);
-	    SetIdentityMatrix(RotationMatrixAnimY);
-	    SetIdentityMatrix(RotationMatrixAnimZ);
-	    angleX = 0.0;
-	    angleY = 0.0;
-	    angleZ = 0.0;
-	    break;
-	 */   
+	/* Reset initial rotation of object */	  
 	 case 'o':
     
 	  BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
@@ -812,7 +787,6 @@ void OnIdle()
 {
     
     computeDeltaTime();
-    float distance_aproached_dt = 0.0;
 
     if (cameraMode == CAMERA_FREE_MOVE){
         float RotationMatrixAnimMouseX[16];
@@ -824,12 +798,9 @@ void OnIdle()
 	/* ------------------------------------------ */
 	 // SetIdentityMatrix(RotationMatrixAnimMouseZ);
 	/* ------------------------------------------ */
-	//float rotateX = mouseDeltaX / 180 * 3.141592654f;
-	// float rotateY = mouseDeltaY / 180 * 3.141592654f;
+
         SetRotationX(mouseDeltaY, RotationMatrixAnimMouseX);
         SetRotationY(mouseDeltaX, RotationMatrixAnimMouseY);
-        //SetRotationX(-rotateY, RotationMatrixAnimMouseX);
-        //SetRotationY(-rotateX, RotationMatrixAnimMouseY);
 	SetRotationZ(0, RotationMatrixAnimMouseZ);
         
         MultiplyMatrix(RotationMatrixAnimMouseX, ViewMatrix, ViewMatrix);
@@ -864,15 +835,41 @@ void OnIdle()
         SetTranslation(camMoveX, camMoveY, camMoveZ, TranslationMatrixMouse);
         MultiplyMatrix(TranslationMatrixMouse, ViewMatrix, ViewMatrix);
     }// 1 4 5
+    // Camera Fixed Move active
     else {
-      /*
-     while(camera_aproach > 0) {
-        distance_aproached_dt = 0.001 * deltaTime/1000;
-	SetTranslation(0.0,0.0,distance_aproached_dt,ViewMatrix);
-	camera_aproach = camera_aproach - distance_aproached_dt;
-	printf("ds: %f\n", distance_aproached_dt);
-     }
-     */
+     
+    if(anim) {
+        
+        float translationCameraX, translationCameraY, translationCameraZ = 0.0f;
+        
+    /* Increment rotation angles and update matrix */
+        if(axis == Xaxis)
+	{
+  	    angleX = fmod(3. * deltaTime, 360.0);
+            double angleRad = (2 * M_PI / 360) * angleX;
+            translationCameraY =  -cos(angleRad) / 1.5f ;
+	    SetRotationX(angleRad, RotationMatrixCamera);
+	}
+	else if(axis == Yaxis)
+	{
+	    angleY = fmod( 3. * deltaTime, 360.0); 
+            double angleRad = (2 * M_PI / 360) * angleY;
+            translationCameraX =  cos(angleRad) /1.5f  ;
+	    SetRotationY(angleRad, RotationMatrixCamera);  
+	}
+	else if(axis == Zaxis)
+	{			
+	    angleZ = fmod(3. * deltaTime, 360.0);
+            double angleRad = (2 * M_PI / 360) * angleZ;
+	    SetRotationZ(angleRad, RotationMatrixCamera);
+	}
+
+        
+        MultiplyMatrix(RotationMatrixCamera, ViewMatrix, ViewMatrix);
+        SetTranslation(translationCameraX, translationCameraY, translationCameraZ, TranslationMatrixCamera);
+        MultiplyMatrix(TranslationMatrixCamera, ViewMatrix, ViewMatrix);
+
+        }
     }
     
     
@@ -924,59 +921,6 @@ void OnIdle()
     SetTranslation(0, BOX4_CURRENT_POSITION_Y, 0, UpDownTranslationBox4);
 
     
-    if(anim) {
-    /* Increment rotation angles and update matrix */
-        if(axis == Xaxis)
-	{
-  	    angleX = fmod(angleX + deltaTime/20.0, 360.0);  
-	    SetRotationX(angleX, RotationMatrixCameraX);
-	}
-	else if(axis == Yaxis)
-	{
-	    angleY = fmod(angleY + deltaTime/20.0, 360.0); 
-	    SetRotationY(angleY, RotationMatrixCameraY);  
-	}
-	else if(axis == Zaxis)
-	{			
-	    angleZ = fmod(angleZ + deltaTime/20.0, 360.0); 
-	    SetRotationZ(angleZ, RotationMatrixCameraZ);
-	}
-    }
-    else {
-          if(axis == Xaxis)
-	{
-  	    angleX = fmod(angleX + mouseDeltaX/20.0, 360.0);  
-	    SetRotationX(angleX, RotationMatrixCameraX);
-	}
-	else if(axis == Yaxis)
-	{
-	    angleY = fmod(angleY + mouseDeltaY/20.0, 360.0); 
-	    SetRotationY(angleY, RotationMatrixCameraY);  
-	}
-	else if(axis == Zaxis)
-	{			
-	    angleZ = fmod(angleZ + mouseDeltaX/20.0, 360.0); 
-	    SetRotationZ(angleZ, RotationMatrixCameraZ);
-	}
-    }
-    /* Update of transformation matrices 
-     * Note order of transformations and rotation of reference axes */
-    MultiplyMatrix(RotationMatrixCameraX, RotationMatrixCameraY, RotationMatrixCamera);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox1);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox2);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox3);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox4);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimGround);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimPillar);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimRoof);
-    /*
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix1);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix2);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix3);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix4);
-    */
-    
-    
 
     /* Apply model rotation; finally move cube down */
     MultiplyMatrix(RotationMatrixAnimGround, InitialTransformGround, ModelMatrixGround);
@@ -1025,41 +969,7 @@ void OnIdle()
     MultiplyMatrix(UpDownTranslationBox4, SuzanneMatrix4, SuzanneMatrix4);
     MultiplyMatrix(TranslateDownBox4, SuzanneMatrix4, SuzanneMatrix4);
     
-    
-    /* Increment rotation angles and update matrix */
-        if(axis == Xaxis)
-	{
-  	    angleX = fmod(angleX + deltaTime/20.0, 360.0);  
-	    SetRotationX(angleX, RotationMatrixCameraX);
-	}
-	else if(axis == Yaxis)
-	{
-	    angleY = fmod(angleY + deltaTime/20.0, 360.0); 
-	    SetRotationY(angleY, RotationMatrixCameraY);  
-	}
-	else if(axis == Zaxis)
-	{			
-	    angleZ = fmod(angleZ + deltaTime/20.0, 360.0); 
-	    SetRotationZ(angleZ, RotationMatrixCameraZ);
-	}
-    
-    /* Update of transformation matrices 
-     * Note order of transformations and rotation of reference axes */
-    MultiplyMatrix(RotationMatrixCameraX, RotationMatrixCameraY, RotationMatrixCamera);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox1);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox2);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox3);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimBox4);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimGround);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimPillar);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, RotationMatrixAnimRoof);
-    /*
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix1);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix2);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix3);
-    MultiplyMatrix(RotationMatrixCamera, RotationMatrixCameraZ, SuzanneMatrix4);
-    */
-    
+
     
     /* ---------------------------------------------------------------------------- */
 
@@ -1382,6 +1292,11 @@ void Initialize(void)
     SetIdentityMatrix(SuzanneMatrix3);
     SetIdentityMatrix(SuzanneMatrix4);
     
+    SetIdentityMatrix(TranslationMatrixCameraX);
+    SetIdentityMatrix(TranslationMatrixCameraY);
+    SetIdentityMatrix(TranslationMatrixCameraZ);
+    SetIdentityMatrix(TranslationMatrixCamera);
+    
     SetIdentityMatrix(RotationMatrixCameraX);
     SetIdentityMatrix(RotationMatrixCameraY);
     SetIdentityMatrix(RotationMatrixCameraZ);
@@ -1565,7 +1480,7 @@ int main(int argc, char** argv)
      * handing control over to GLUT */
     glutIdleFunc(OnIdle);
     glutDisplayFunc(Display);
-    glutKeyboardFunc(Keyboard); 
+    glutKeyboardFunc(Keyboard);     
     glutKeyboardUpFunc(KeyboardUp);
     glutMouseFunc(Mouse);
     glutPassiveMotionFunc(MouseMove);

@@ -12,6 +12,22 @@ KOFLER Gerald
 
 GAUGLER Benjamin
 
+
+## Controls
+
+Key '1': Activate fixed camera movement.
+
+	When in fixed camera movement, use LeftMouse, RightMouse and MiddleMouse to change direction of rotation.
+
+Key '2': Activate free camera movement.
+
+	When in free camera movement, use WASD keys to move, and Mouse to look around.
+
+Key 'q': Exit program
+
+
+
+
 ===============================
 
 OpenGL 3.3 / GLSL 3.3
