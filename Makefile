@@ -1,4 +1,4 @@
-CC = gcc
+CC = g++
 LD = gcc
 
 OBJ = MerryGoRound.o LoadShader.o Matrix.o StringExtra.o OBJParser.o List.o
@@ -15,7 +15,7 @@ VPATH = source
 # new Rules 
 all: $(TARGET)
 # 
-$(TARGET).o: $(TARGET).c 
+$(TARGET).o: $(TARGET).cpp 
 	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
 # 
 $(BUILD_DIR)/%.o: %.c 

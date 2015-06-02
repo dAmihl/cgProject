@@ -10,6 +10,7 @@
         <in>StringExtra.c</in>
       </df>
       <in>MerryGoRound.c</in>
+      <in>MerryGoRound.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -46,11 +47,18 @@
               <pElem>source</pElem>
             </incDir>
           </cTool>
+          <ccTool>
+            <incDir>
+              <pElem>source</pElem>
+            </incDir>
+          </ccTool>
         </makeTool>
       </makefileType>
-      <item path="MerryGoRound.c" ex="false" tool="0" flavor2="0">
+      <item path="MerryGoRound.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
+      </item>
+      <item path="MerryGoRound.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <folder path="0/source">
         <cTool>
@@ -59,23 +67,23 @@
           </incDir>
         </cTool>
       </folder>
-      <item path="source/List.c" ex="false" tool="0" flavor2="0">
+      <item path="source/List.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="source/LoadShader.c" ex="false" tool="0" flavor2="0">
+      <item path="source/LoadShader.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="source/Matrix.c" ex="false" tool="0" flavor2="0">
+      <item path="source/Matrix.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="source/OBJParser.c" ex="false" tool="0" flavor2="0">
+      <item path="source/OBJParser.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
       </item>
-      <item path="source/StringExtra.c" ex="false" tool="0" flavor2="0">
+      <item path="source/StringExtra.c" ex="false" tool="0" flavor2="2">
         <cTool flags="0">
         </cTool>
       </item>

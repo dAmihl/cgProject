@@ -37,7 +37,7 @@ const char* LoadShader(const char* filename)
     fopen_s(&infile, filename, "rb");
 #else
     FILE* infile = fopen(filename, "rb");
-#endif // WIN32
+#endif /* WIN32 */
 
     if (!infile) 
     {
@@ -49,7 +49,7 @@ const char* LoadShader(const char* filename)
     int len = ftell(infile);
     fseek(infile, 0, SEEK_SET);
 
-    char* source = malloc(sizeof(char) * (len+1));
+    char* source = (char*) malloc(sizeof(char) * (len+1));
 
     fread(source, 1, len, infile);
     fclose(infile);

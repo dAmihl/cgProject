@@ -20,6 +20,8 @@
 *.so.*
 *.dylib
 
+nbproject/
+
 # Executables
 *.exe
 *.out

@@ -24,6 +24,9 @@
 #define WALL_SIZE 6.0
 #define WALL_HEIGHT 0.1
 
+#define MAX_ROTATION_SPEED 1.0
+#define START_ROTATION_SPEED 0.1
+
 #define GROUND_SIZE 3.0
 #define GROUND_HEIGHT 0.2
 
@@ -35,11 +38,18 @@
 #define PILLAR_HEIGHT 2
 
 
+#define GLM_FORCE_RADIANS  /* Use radians in all GLM functions */
 /* Standard includes */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+/* GLM includes - adjust path as required for local installation */
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp" /* Provides glm::translate, glm::rotate, 
+                                         * glm::scale, glm::perspective */
+#include "glm/gtc/type_ptr.hpp"         /* Vector/matrix handling */
 
 /* OpenGL includes */
 #include <GL/glew.h>
@@ -47,7 +57,10 @@
 
 
 /* Local includes */
-#include "LoadShader.h"   /* Provides loading function for shader code */
+/* Local includes */
+
+    #include "LoadShader.h"   /* Provides loading function for shader code */
+
 #include "Matrix.h"
 #include "OBJParser.h"
 
@@ -136,8 +149,9 @@ GLuint ShaderProgram;
 
 
 
-float ProjectionMatrix[16]; /* Perspective projection matrix */
-float ViewMatrix[16]; /* Camera view matrix */ 
+glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
+glm::mat4 ViewMatrix; /* Camera view matrix */ 
+glm::mat4 PVMMatrix;        /* Final combined transformation */
 float camera_disp = -25.0;
 float camera_aproach = 10.0;
 
@@ -154,108 +168,117 @@ GLboolean camMoveRight = GL_FALSE;
 
 
 
-float ModelMatrixGround[16];	/* Model matrix for the ground layer */
-float ModelMatrixRoof[16];	/* Model matrix for the roof (top layer) */
-float ModelMatrixPillar[16];	/* Model matrix for the pillar */
+glm::mat4 ModelMatrixGround;	/* Model matrix for the ground layer */
+glm::mat4 ModelMatrixRoof;	/* Model matrix for the roof (top layer) */
+glm::mat4 ModelMatrixPillar;	/* Model matrix for the pillar */
 
-float ModelMatrixFloor[16]; /* Model matrix for the floor entity*/
-float ModelMatrixWall1[16]; /* Model matrix for the wall entity*/
-float ModelMatrixWall2[16]; /* Model matrix for the wall entity*/
-float ModelMatrixWall3[16]; /* Model matrix for the wall entity*/
+glm::mat4 ModelMatrixFloor; /* Model matrix for the floor entity*/
+glm::mat4 ModelMatrixWall1; /* Model matrix for the wall entity*/
+glm::mat4 ModelMatrixWall2; /* Model matrix for the wall entity*/
+glm::mat4 ModelMatrixWall3; /* Model matrix for the wall entity*/
 
 
-float ModelMatrixBox1[16]; /*Model matrix for box1*/
-float ModelMatrixBox2[16]; /*Model matrix for box2*/
-float ModelMatrixBox3[16]; /*Model matrix for box3*/
-float ModelMatrixBox4[16]; /*Model matrix for box4*/
+glm::mat4 SuzanneMatrix1;
+glm::mat4 SuzanneMatrix2;
+glm::mat4 SuzanneMatrix3;
+glm::mat4 SuzanneMatrix4;
 
-float SuzanneMatrix1[16];
-float SuzanneMatrix2[16];
-float SuzanneMatrix3[16];
-float SuzanneMatrix4[16];
+glm::mat4 PVMMatrixGround;
+glm::mat4 PVMMatrixRoof;
+glm::mat4 PVMMatrixPillar;
+
+glm::mat4 PVMMatrixFloor;
+glm::mat4 PVMMatrixWall1;
+glm::mat4 PVMMatrixWall2;
+glm::mat4 PVMMatrixWall3;
+
+glm::mat4 PVMMatrixSuzanne1;
+glm::mat4 PVMMatrixSuzanne2;
+glm::mat4 PVMMatrixSuzanne3;
+glm::mat4 PVMMatrixSuzanne4;
 
 
 
 /* Transformation matrices for initial position */
 
-float TranslateOriginRoof[16];
-float TranslateDownRoof[16];
-float RotateXRoof[16];
-float RotateZRoof[16];
-float InitialTransformRoof[16];
+glm::mat4 TranslateOriginRoof;
+glm::mat4 TranslateDownRoof;
+glm::mat4 RotateXRoof;
+glm::mat4 RotateZRoof;
+glm::mat4 InitialTransformRoof;
 
-float TranslateOriginPillar[16];
-float TranslateDownPillar[16];
-float RotateXPillar[16];
-float RotateZPillar[16];
-float InitialTransformPillar[16];
+glm::mat4 TranslateOriginPillar;
+glm::mat4 TranslateDownPillar;
+glm::mat4 RotateXPillar;
+glm::mat4 RotateZPillar;
+glm::mat4 InitialTransformPillar;
 
-float TranslateOriginGround[16];
-float TranslateDownGround[16];
-float RotateXGround[16];
-float RotateZGround[16];
-float InitialTransformGround[16];
+glm::mat4 TranslateOriginGround;
+glm::mat4 TranslateDownGround;
+glm::mat4 RotateXGround;
+glm::mat4 RotateZGround;
+glm::mat4 InitialTransformGround;
 
-float TranslateOriginBox1[16];
-float TranslateDownBox1[16];
-float RotateXBox1[16];
-float RotateZBox1[16];
-float InitialTransformBox1[16];
-float UpDownTranslationBox1[16];
+glm::mat4 TranslateOriginBox1;
+glm::mat4 TranslateDownBox1;
+glm::mat4 RotateXBox1;
+glm::mat4 RotateZBox1;
+glm::mat4 InitialTransformBox1;
+glm::mat4 UpDownTranslationBox1;
 
-float TranslateOriginBox2[16];
-float TranslateDownBox2[16];
-float RotateXBox2[16];
-float RotateZBox2[16];
-float InitialTransformBox2[16];
-float UpDownTranslationBox2[16];
+glm::mat4 TranslateOriginBox2;
+glm::mat4 TranslateDownBox2;
+glm::mat4 RotateXBox2;
+glm::mat4 RotateZBox2;
+glm::mat4 InitialTransformBox2;
+glm::mat4 UpDownTranslationBox2;
 
-float TranslateOriginBox3[16];
-float TranslateDownBox3[16];
-float RotateXBox3[16];
-float RotateZBox3[16];
-float InitialTransformBox3[16];
-float UpDownTranslationBox3[16];
+glm::mat4 TranslateOriginBox3;
+glm::mat4 TranslateDownBox3;
+glm::mat4 RotateXBox3;
+glm::mat4 RotateZBox3;
+glm::mat4 InitialTransformBox3;
+glm::mat4 UpDownTranslationBox3;
 
-float TranslateOriginBox4[16];
-float TranslateDownBox4[16];
-float RotateXBox4[16];
-float RotateZBox4[16];
-float InitialTransformBox4[16];
-float UpDownTranslationBox4[16];
+glm::mat4 TranslateOriginBox4;
+glm::mat4 TranslateDownBox4;
+glm::mat4 RotateXBox4;
+glm::mat4 RotateZBox4;
+glm::mat4 InitialTransformBox4;
+glm::mat4 UpDownTranslationBox4;
 
 /* Walls and Ground */
 
-float TranslateOriginWall1[16];
-float TranslateDownWall1[16];
-float RotateXWall1[16];
-float RotateYWall1[16];
-float RotateZWall1[16];
-float InitialTransformWall1[16];
-float UpDownTranslationWall1[16];
+glm::mat4 TranslateOriginWall1;
+glm::mat4 TranslateDownWall1;
+glm::mat4 RotateXWall1;
+glm::mat4 RotateYWall1;
+glm::mat4 RotateZWall1;
+glm::mat4 InitialTransformWall1;
+glm::mat4 UpDownTranslationWall1;
 
-float TranslateOriginWall2[16];
-float TranslateDownWall2[16];
-float RotateXWall2[16];
-float RotateZWall2[16];
-float RotateYWall2[16];
-float InitialTransformWall2[16];
-float UpDownTranslationWall2[16];
+glm::mat4 TranslateOriginWall2;
+glm::mat4 TranslateDownWall2;
+glm::mat4 RotateXWall2;
+glm::mat4 RotateZWall2;
+glm::mat4 RotateYWall2;
+glm::mat4 InitialTransformWall2;
+glm::mat4 UpDownTranslationWall2;
 
-float TranslateOriginWall3[16];
-float TranslateDownWall3[16];
-float RotateXWall3[16];
-float RotateZWall3[16];
-float RotateYWall3[16];
-float InitialTransformWall3[16];
-float UpDownTranslationWall3[16];
+glm::mat4 TranslateOriginWall3;
+glm::mat4 TranslateDownWall3;
+glm::mat4 RotateXWall3;
+glm::mat4 RotateZWall3;
+glm::mat4 RotateYWall3;
+glm::mat4 InitialTransformWall3;
+glm::mat4 UpDownTranslationWall3;
 
-float TranslateOriginFloor[16];
-float TranslateDownFloor[16];
-float RotateXFloor[16];
-float RotateZFloor[16];
-float InitialTransformFloor[16];
-float UpDownTranslationFloor[16];
+glm::mat4 TranslateOriginFloor;
+glm::mat4 TranslateDownFloor;
+glm::mat4 RotateXFloor;
+glm::mat4 RotateZFloor;
+glm::mat4 InitialTransformFloor;
+glm::mat4 UpDownTranslationFloor;
 
 
 const float BOX1_START_POSITION_Y = 1.0;
@@ -283,25 +306,25 @@ int mouseDeltaY = 0;
 
 
 /* ------------------------------------ */
-float rotation_speed_factor = 1.0;
+float rotation_speed_factor = START_ROTATION_SPEED;
 int rotation_direction = 1;
 
-float updown_speed_factor = 1.0;
+float updown_speed_factor = START_ROTATION_SPEED;
 
 float zoom = 1.0;
 
 
 
 /* Transformation matrices for camera rotation */
-float TranslationMatrixCameraX[16];
-float TranslationMatrixCameraY[16];
-float TranslationMatrixCameraZ[16];
-float TranslationMatrixCamera[16];
+glm::mat4 TranslationMatrixCameraX;
+glm::mat4 TranslationMatrixCameraY;
+glm::mat4 TranslationMatrixCameraZ;
+glm::mat4 TranslationMatrixCamera;
 
-float RotationMatrixCameraX[16];
-float RotationMatrixCameraY[16];
-float RotationMatrixCameraZ[16];
-float RotationMatrixCamera[16];
+glm::mat4 RotationMatrixCameraX;
+glm::mat4 RotationMatrixCameraY;
+glm::mat4 RotationMatrixCameraZ;
+glm::mat4 RotationMatrixCamera;
 
 /* Variables for storing current rotation angles */
 float angleX, angleY, angleZ = 0.0f; 
@@ -504,7 +527,7 @@ GLushort wall_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 *******************************************************************/
 
 
-void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
+void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     
 
     glEnableVertexAttribArray(vPosition);
@@ -521,31 +544,15 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
     
     GLint size; 
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
-    /* Associate program with shader matrices */
-    GLint projectionUniform = glGetUniformLocation(ShaderProgram, "ProjectionMatrix");
-    if (projectionUniform == -1) 
-    {
-        fprintf(stderr, "Could not bind uniform ProjectionMatrix\n");
-	exit(-1);
-    }
-    glUniformMatrix4fv(projectionUniform, 1, GL_TRUE, ProjectionMatrix);
     
-    GLint ViewUniform = glGetUniformLocation(ShaderProgram, "ViewMatrix");
-    if (ViewUniform == -1) 
+ /* Associate program with shader matrices */
+    GLint PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
+    if (PVMMatrixID == -1) 
     {
-        fprintf(stderr, "Could not bind uniform ViewMatrix\n");
+        fprintf(stderr, "Could not bind uniform ProjectionViewModelMatrix\n");
         exit(-1);
     }
-    glUniformMatrix4fv(ViewUniform, 1, GL_TRUE, ViewMatrix);
-   
-    GLint RotationUniform = glGetUniformLocation(ShaderProgram, "ModelMatrix");
-    if (RotationUniform == -1) 
-    {
-        fprintf(stderr, "Could not bind uniform ModelMatrix\n");
-        exit(-1);
-    }
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrix);  
+    glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(pvm));  
     
     /*	-------------------------------------------------------------------------- */
     /* Set state to only draw wireframe (no lighting used, yet) */
@@ -555,7 +562,7 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, float ModelMatrix[16]){
     glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Issue draw command, using indexed triangle list */
-    glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    //glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     /*	--------------------------------------------------------------------------- */
     
     /* Disable attributes */
@@ -580,28 +587,20 @@ void Display()
     /* Clear window; color specified in 'Initialize()' */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixGround);
-    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
-    DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
-    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox1);
+    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, PVMMatrixGround);
+    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, PVMMatrixRoof);
+    DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, PVMMatrixPillar);
     
     /* Walls and Floor*/
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixFloor);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall1);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall2);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall3);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixFloor);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall1);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall2);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall3);
 
-
-    
-    //DrawObject(BOX1_VBO, BOX1_CBO, BOX1_IBO, SuzanMatrix);
-    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox2);
-    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox3);
-    DrawObject(HORSEBOX_VBO, HORSEBOX_CBO, HORSEBOX_IBO, ModelMatrixBox4);
-    
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix1);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix2);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix3);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix4);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne1);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne2);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne3);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne4);
 
 
     /* Swap between front and back buffer */ 
@@ -694,24 +693,36 @@ void Keyboard(unsigned char key, int x, int y)
 	// keys to manipulate the modle
 	// change speed and direction of rotation
 	case 'w':
-	    if (rotation_speed_factor < 2) rotation_speed_factor += 0.1;
-	    if (updown_speed_factor < 2) updown_speed_factor += 0.1;
+	    
             if (cameraMode == CAMERA_FREE_MOVE) camMoveForward = GL_TRUE;
+            else{
+                if (rotation_speed_factor < MAX_ROTATION_SPEED) rotation_speed_factor += 0.1;
+                if (updown_speed_factor < MAX_ROTATION_SPEED) updown_speed_factor += 0.1;
+            }
 	    break;
 	    
 	case 's':
-	    if (rotation_speed_factor > 0) rotation_speed_factor -= 0.1;
-	    if (updown_speed_factor > 0) updown_speed_factor -= 0.1;
+	   
             if (cameraMode == CAMERA_FREE_MOVE) camMoveBack = GL_TRUE;
+            else{
+                if (rotation_speed_factor > 0) rotation_speed_factor -= 0.1;
+                if (updown_speed_factor > 0) updown_speed_factor -= 0.1;
+            }
 	    break;
 	case 'a':
-	    rotation_direction = 1;
+	    
             if (cameraMode == CAMERA_FREE_MOVE) camMoveLeft = GL_TRUE;
+            else{
+                rotation_direction = 1;
+            }
 	    break;
 	    
 	case 'd':
-	    rotation_direction = -1;
+	    
             if (cameraMode == CAMERA_FREE_MOVE) camMoveRight = GL_TRUE;
+            else{
+                rotation_direction = -1;
+            }
 	    break;
 	/* --------------------------------------- */
 	// keys to manipulate the camera
@@ -734,9 +745,9 @@ void Keyboard(unsigned char key, int x, int y)
 	  BOX3_CURRENT_POSITION_Y = BOX3_START_POSITION_Y;
 	  BOX4_CURRENT_POSITION_Y = BOX4_START_POSITION_Y;
 	  
-	  rotation_speed_factor = 1.0;
+	  rotation_speed_factor = START_ROTATION_SPEED;
 	  rotation_direction = 1;
-	  updown_speed_factor = 1.0;
+	  updown_speed_factor = START_ROTATION_SPEED;
 	  
 	  break;
 	  
@@ -789,23 +800,18 @@ void OnIdle()
     computeDeltaTime();
 
     if (cameraMode == CAMERA_FREE_MOVE){
-        float RotationMatrixAnimMouseX[16];
-        float RotationMatrixAnimMouseY[16];
-        float RotationMatrixAnimMouseZ[16];
-	float TranslationMatrixMouse[16];
+        glm::mat4 RotationMatrixAnimMouseX;
+        glm::mat4 RotationMatrixAnimMouseY;
+        glm::mat4 RotationMatrixAnimMouseZ;
+	glm::mat4 TranslationMatrixMouse;
 	
-	
-	/* ------------------------------------------ */
-	 // SetIdentityMatrix(RotationMatrixAnimMouseZ);
-	/* ------------------------------------------ */
-
-        SetRotationX(mouseDeltaY, RotationMatrixAnimMouseX);
-        SetRotationY(mouseDeltaX, RotationMatrixAnimMouseY);
-	SetRotationZ(0, RotationMatrixAnimMouseZ);
-        
-        MultiplyMatrix(RotationMatrixAnimMouseX, ViewMatrix, ViewMatrix);
-        MultiplyMatrix(RotationMatrixAnimMouseY, ViewMatrix, ViewMatrix);
-        MultiplyMatrix(RotationMatrixAnimMouseZ, ViewMatrix, ViewMatrix);
+        RotationMatrixAnimMouseX = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaY, glm::vec3(1.0f, 0.0f, 0.0f));
+        RotationMatrixAnimMouseY = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaX, glm::vec3(0.0f, 1.0f, 0.0f));
+        RotationMatrixAnimMouseZ = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+              
+        ViewMatrix = RotationMatrixAnimMouseX * ViewMatrix;
+        ViewMatrix = RotationMatrixAnimMouseY * ViewMatrix;
+        ViewMatrix = RotationMatrixAnimMouseZ * ViewMatrix;
         
         mouseDeltaY = 0;
         mouseDeltaX = 0;
@@ -832,8 +838,10 @@ void OnIdle()
         if (camMoveRight == GL_TRUE){
             camMoveX = -camMoveSpeed;
         }
-        SetTranslation(camMoveX, camMoveY, camMoveZ, TranslationMatrixMouse);
-        MultiplyMatrix(TranslationMatrixMouse, ViewMatrix, ViewMatrix);
+        
+        TranslationMatrixMouse = glm::translate(glm::mat4(1.0f), glm::vec3(camMoveX, camMoveY, camMoveZ));
+       
+        ViewMatrix = TranslationMatrixMouse * ViewMatrix;
     }// 1 4 5
     // Camera Fixed Move active
     else {
@@ -845,29 +853,27 @@ void OnIdle()
     /* Increment rotation angles and update matrix */
         if(axis == Xaxis)
 	{
-  	    angleX = fmod(3. * deltaTime, 360.0);
+  	    angleX = fmod(0.15 * deltaTime, 360.0);
             double angleRad = (2 * M_PI / 360) * angleX;
             translationCameraY =  -cos(angleRad) / 1.5f ;
-	    SetRotationX(angleRad, RotationMatrixCamera);
+            RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(1.0f, 0.0f, 0.0f));
 	}
 	else if(axis == Yaxis)
 	{
-	    angleY = fmod( 3. * deltaTime, 360.0); 
+	    angleY = fmod( 0.15 * deltaTime, 360.0); 
             double angleRad = (2 * M_PI / 360) * angleY;
             translationCameraX =  cos(angleRad) /1.5f  ;
-	    SetRotationY(angleRad, RotationMatrixCamera);  
+            RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	else if(axis == Zaxis)
 	{			
-	    angleZ = fmod(3. * deltaTime, 360.0);
+	    angleZ = fmod(0.15 * deltaTime, 360.0);
             double angleRad = (2 * M_PI / 360) * angleZ;
-	    SetRotationZ(angleRad, RotationMatrixCamera);
+            RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
-        
-        MultiplyMatrix(RotationMatrixCamera, ViewMatrix, ViewMatrix);
-        SetTranslation(translationCameraX, translationCameraY, translationCameraZ, TranslationMatrixCamera);
-        MultiplyMatrix(TranslationMatrixCamera, ViewMatrix, ViewMatrix);
+        TranslationMatrixCamera = glm::translate(glm::mat4(1.0f), glm::vec3(translationCameraX, translationCameraY, translationCameraZ));
+        ViewMatrix = TranslationMatrixCamera * RotationMatrixCamera * ViewMatrix;
 
         }
     }
@@ -880,26 +886,24 @@ void OnIdle()
     angle *= rotation_direction;
    
 
-    float RotationMatrixAnimGround[16];
-    float RotationMatrixAnimPillar[16];
-    float RotationMatrixAnimRoof[16];
-    float RotationMatrixAnimBox1[16];
-    float RotationMatrixAnimBox2[16];
-    float RotationMatrixAnimBox3[16];
-    float RotationMatrixAnimBox4[16];
+    glm::mat4 RotationMatrixAnimGround;
+    glm::mat4 RotationMatrixAnimPillar;
+    glm::mat4 RotationMatrixAnimRoof;
+    glm::mat4 RotationMatrixAnimBox1;
+    glm::mat4 RotationMatrixAnimBox2;
+    glm::mat4 RotationMatrixAnimBox3;
+    glm::mat4 RotationMatrixAnimBox4;
 
 
     
     /* Time dependent rotation */
-    SetRotationY(-angle/2, RotationMatrixAnimGround);
-    SetRotationY(-angle/2, RotationMatrixAnimRoof);
-    SetRotationY(-angle/2, RotationMatrixAnimPillar);
-    SetRotationY(angle, RotationMatrixAnimBox1);
-    SetRotationY(angle, RotationMatrixAnimBox2);
-    SetRotationY(angle, RotationMatrixAnimBox3);
-    SetRotationY(angle, RotationMatrixAnimBox4);
-
-    
+    RotationMatrixAnimGround = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimRoof = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimPillar = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimBox1 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimBox2 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimBox3 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimBox4 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));    
 
 	/* compute merry-go-round horse translation */
     BOX1_CURRENT_UPDOWN_DIRECTION = (BOX1_CURRENT_POSITION_Y > 2 ? -1 : (BOX1_CURRENT_POSITION_Y < 0 ? 1 : BOX1_CURRENT_UPDOWN_DIRECTION));
@@ -915,60 +919,44 @@ void OnIdle()
     BOX3_CURRENT_POSITION_Y += updown * BOX3_CURRENT_UPDOWN_DIRECTION;
     BOX4_CURRENT_POSITION_Y += updown * BOX4_CURRENT_UPDOWN_DIRECTION;
     
-    SetTranslation(0, BOX1_CURRENT_POSITION_Y, 0, UpDownTranslationBox1);
-    SetTranslation(0, BOX2_CURRENT_POSITION_Y, 0, UpDownTranslationBox2);
-    SetTranslation(0, BOX3_CURRENT_POSITION_Y, 0, UpDownTranslationBox3);
-    SetTranslation(0, BOX4_CURRENT_POSITION_Y, 0, UpDownTranslationBox4);
+    UpDownTranslationBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX1_CURRENT_POSITION_Y, 0));
+    UpDownTranslationBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX2_CURRENT_POSITION_Y, 0));
+    UpDownTranslationBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX3_CURRENT_POSITION_Y, 0));
+    UpDownTranslationBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX4_CURRENT_POSITION_Y, 0));
 
     
 
-    /* Apply model rotation; finally move cube down */
-    MultiplyMatrix(RotationMatrixAnimGround, InitialTransformGround, ModelMatrixGround);
-    MultiplyMatrix(TranslateDownGround, ModelMatrixGround, ModelMatrixGround);
-    
-    MultiplyMatrix(RotationMatrixAnimRoof, InitialTransformRoof, ModelMatrixRoof);
-    MultiplyMatrix(TranslateDownRoof, ModelMatrixRoof, ModelMatrixRoof);
-    
-    MultiplyMatrix(RotationMatrixAnimPillar, InitialTransformPillar, ModelMatrixPillar);
-    MultiplyMatrix(TranslateDownPillar, ModelMatrixPillar, ModelMatrixPillar);
-    
+    ModelMatrixGround = TranslateDownGround * RotationMatrixAnimGround * InitialTransformGround;
+    ModelMatrixRoof = TranslateDownRoof * RotationMatrixAnimRoof * InitialTransformRoof;
+    ModelMatrixPillar = TranslateDownPillar * RotationMatrixAnimPillar * InitialTransformPillar;
     
 
-    MultiplyMatrix(RotationMatrixAnimBox1, InitialTransformBox1, ModelMatrixBox1);
-    MultiplyMatrix(UpDownTranslationBox1, ModelMatrixBox1, ModelMatrixBox1);
-    MultiplyMatrix(TranslateDownBox1, ModelMatrixBox1, ModelMatrixBox1);
-    
-    MultiplyMatrix(RotationMatrixAnimBox2, InitialTransformBox2, ModelMatrixBox2);
-    MultiplyMatrix(UpDownTranslationBox2, ModelMatrixBox2, ModelMatrixBox2);
-    MultiplyMatrix(TranslateDownBox2, ModelMatrixBox2, ModelMatrixBox2);
-    
-    MultiplyMatrix(RotationMatrixAnimBox3, InitialTransformBox3, ModelMatrixBox3);
-    MultiplyMatrix(UpDownTranslationBox3, ModelMatrixBox3, ModelMatrixBox3);
-    MultiplyMatrix(TranslateDownBox3, ModelMatrixBox3, ModelMatrixBox3);
-    
-    MultiplyMatrix(RotationMatrixAnimBox4, InitialTransformBox4, ModelMatrixBox4);
-    MultiplyMatrix(UpDownTranslationBox4, ModelMatrixBox4, ModelMatrixBox4);
-    MultiplyMatrix(TranslateDownBox4, ModelMatrixBox4, ModelMatrixBox4);
+    /* Apply model rotation; finally move cube down */    
+    SuzanneMatrix1 = TranslateDownBox1 * UpDownTranslationBox1 * RotationMatrixAnimBox1 * InitialTransformBox1;
+    SuzanneMatrix2 = TranslateDownBox2 * UpDownTranslationBox2 * RotationMatrixAnimBox2 * InitialTransformBox2;
+    SuzanneMatrix3 = TranslateDownBox3 * UpDownTranslationBox3 * RotationMatrixAnimBox3 * InitialTransformBox3;
+    SuzanneMatrix4 = TranslateDownBox4 * UpDownTranslationBox4 * RotationMatrixAnimBox4 * InitialTransformBox4;
+
     
     
-    /* ---------------------------------------------------------------------------- */
-    /* 		Added for exercise 2						    */
-    MultiplyMatrix(RotationMatrixAnimBox1, InitialTransformBox1, SuzanneMatrix1);
-    MultiplyMatrix(UpDownTranslationBox1, SuzanneMatrix1, SuzanneMatrix1);
-    MultiplyMatrix(TranslateDownBox1, SuzanneMatrix1, SuzanneMatrix1);
+     /* Set up single transformation matrix for complete transformation 
+       from model to screen space */
+    PVMMatrixGround = ProjectionMatrix * ViewMatrix * ModelMatrixGround;
+    PVMMatrixRoof = ProjectionMatrix * ViewMatrix * ModelMatrixRoof;
+    PVMMatrixPillar = ProjectionMatrix * ViewMatrix * ModelMatrixPillar;
     
-    MultiplyMatrix(RotationMatrixAnimBox2, InitialTransformBox2, SuzanneMatrix2);
-    MultiplyMatrix(UpDownTranslationBox2, SuzanneMatrix2, SuzanneMatrix2);
-    MultiplyMatrix(TranslateDownBox2, SuzanneMatrix2, SuzanneMatrix2);
+        
+    PVMMatrixFloor = ProjectionMatrix * ViewMatrix * ModelMatrixFloor;
+    PVMMatrixWall1 = ProjectionMatrix * ViewMatrix * ModelMatrixWall1;
+    PVMMatrixWall2 = ProjectionMatrix * ViewMatrix * ModelMatrixWall2;
+    PVMMatrixWall3 = ProjectionMatrix * ViewMatrix * ModelMatrixWall3;
     
-    MultiplyMatrix(RotationMatrixAnimBox3, InitialTransformBox3, SuzanneMatrix3);
-    MultiplyMatrix(UpDownTranslationBox3, SuzanneMatrix3, SuzanneMatrix3);
-    MultiplyMatrix(TranslateDownBox3, SuzanneMatrix3, SuzanneMatrix3);
     
-    MultiplyMatrix(RotationMatrixAnimBox4, InitialTransformBox4, SuzanneMatrix4);
-    MultiplyMatrix(UpDownTranslationBox4, SuzanneMatrix4, SuzanneMatrix4);
-    MultiplyMatrix(TranslateDownBox4, SuzanneMatrix4, SuzanneMatrix4);
-    
+    PVMMatrixSuzanne1 = ProjectionMatrix * ViewMatrix * SuzanneMatrix1;
+    PVMMatrixSuzanne2 = ProjectionMatrix * ViewMatrix * SuzanneMatrix2;
+    PVMMatrixSuzanne3 = ProjectionMatrix * ViewMatrix * SuzanneMatrix3;
+    PVMMatrixSuzanne4 = ProjectionMatrix * ViewMatrix * SuzanneMatrix4;
+
 
     
     /* ---------------------------------------------------------------------------- */
@@ -1061,16 +1049,6 @@ void SetupDataBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLushort), index_buffer_suzanne, GL_STATIC_DRAW);
  
- /*
-    glGenBuffers(1, &BOX1_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
-    glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_count*3*sizeof(GLfloat), vertex_buffer_suzanne, GL_STATIC_DRAW);
-
-   
-    glGenBuffers(1, &BOX1_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO1);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLushort), index_buffer_suzanne, GL_STATIC_DRAW);
- */
  /* -------------------------------------------------------------------------*/   
     
 }
@@ -1216,7 +1194,7 @@ void Initialize(void)
     int success;
     
     /* Load suzanne */
-    char* filename_suzanne = "models/suzanne.obj";
+    char* filename_suzanne = (char*) "models/suzanne.obj";
     success = parse_obj_scene(&suzanne_data, filename_suzanne);
     
     if(!success)
@@ -1245,11 +1223,6 @@ void Initialize(void)
 	index_buffer_suzanne[i*3+2] = (GLushort)(suzanne_data.face_list[i])->vertex_index[2];
     }
     
-    
-    
-    
-    
-    
     /* Set background (clear) color to white */ 
     glClearColor(1.0, 1.0, 1.0, 0.0);
 
@@ -1267,173 +1240,114 @@ void Initialize(void)
     CreateShaderProgram();
 
     /* Initialize matrices */
-    SetIdentityMatrix(ProjectionMatrix);
-    SetIdentityMatrix(ViewMatrix);
     
 
-    SetIdentityMatrix(ModelMatrixGround);
-    SetIdentityMatrix(ModelMatrixPillar);
-    SetIdentityMatrix(ModelMatrixRoof);
+    ModelMatrixGround = glm::mat4(1.0f);
+    ModelMatrixPillar = glm::mat4(1.0f);
+    ModelMatrixRoof = glm::mat4(1.0f);
+   
+    ModelMatrixFloor = glm::mat4(1.0f);
+    ModelMatrixWall1 = glm::mat4(1.0f);
+    ModelMatrixWall2 = glm::mat4(1.0f);
+    ModelMatrixWall3 = glm::mat4(1.0f);
     
-    SetIdentityMatrix(ModelMatrixFloor);
-    SetIdentityMatrix(ModelMatrixWall1);
-    SetIdentityMatrix(ModelMatrixWall2);
-    SetIdentityMatrix(ModelMatrixWall3);
+    TranslationMatrixCamera = glm::mat4(1.0f);
+    TranslationMatrixCameraX = glm::mat4(1.0f);
+    TranslationMatrixCameraY = glm::mat4(1.0f);
+    TranslationMatrixCameraZ = glm::mat4(1.0f);
+    
+    RotationMatrixCamera = glm::mat4(1.0f);
+    RotationMatrixCameraX = glm::mat4(1.0f);
+    RotationMatrixCameraY = glm::mat4(1.0f);
+    RotationMatrixCameraZ = glm::mat4(1.0f);
+    
+    SuzanneMatrix1 = glm::mat4(1.0f);
+    SuzanneMatrix2 = glm::mat4(1.0f);
+    SuzanneMatrix3 = glm::mat4(1.0f);
+    SuzanneMatrix4 = glm::mat4(1.0f);
 
-    
-    
-    SetIdentityMatrix(ModelMatrixBox1);
-    SetIdentityMatrix(ModelMatrixBox2);
-    SetIdentityMatrix(ModelMatrixBox3);
-    SetIdentityMatrix(ModelMatrixBox4);
-    
-    SetIdentityMatrix(SuzanneMatrix1);
-    SetIdentityMatrix(SuzanneMatrix2);
-    SetIdentityMatrix(SuzanneMatrix3);
-    SetIdentityMatrix(SuzanneMatrix4);
-    
-    SetIdentityMatrix(TranslationMatrixCameraX);
-    SetIdentityMatrix(TranslationMatrixCameraY);
-    SetIdentityMatrix(TranslationMatrixCameraZ);
-    SetIdentityMatrix(TranslationMatrixCamera);
-    
-    SetIdentityMatrix(RotationMatrixCameraX);
-    SetIdentityMatrix(RotationMatrixCameraY);
-    SetIdentityMatrix(RotationMatrixCameraZ);
-    SetIdentityMatrix(RotationMatrixCamera);
-    
+              
     BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
     BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
     BOX3_CURRENT_POSITION_Y = BOX3_START_POSITION_Y;
     BOX4_CURRENT_POSITION_Y = BOX4_START_POSITION_Y;
 
     
-        
-
-
-
     /* Set projection transform */
     float fovy = 45.0;
     float aspect = 1.0; 
     float nearPlane = 1.0; 
     float farPlane = 50.0;
-    SetPerspectiveMatrix(fovy, aspect, nearPlane, farPlane, ProjectionMatrix);
+    ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane); 
 
-    /* Set viewing transform */
-    //float camera_disp = -15.0;
-    SetTranslation(0.0, 0.0, camera_disp, ViewMatrix);
+    /* Set viewing transform */  
+    ViewMatrix = glm::lookAt(glm::vec3(0,0,-10),    /* Eye vector */
+			     glm::vec3(0,0,0),     /* Viewing center */
+			     glm::vec3(0,1,0) );  /* Up vector */
 
-    
+
     /* Translate and rotate ground onto tip */
-    SetTranslation(0, 0, 0, TranslateOriginGround);
-    SetRotationX(0, RotateXGround);
-    SetRotationZ(0, RotateZGround);	
-    
-    SetTranslation(0, 4.2, 0, TranslateOriginRoof);
-    SetRotationX(0, RotateXRoof);
-    SetRotationZ(0, RotateZRoof);
-    
-    SetTranslation(0, 2, 0, TranslateOriginPillar);
-    SetRotationX(0, RotateXPillar);
-    SetRotationZ(0, RotateZPillar);
+    TranslateOriginGround = glm::translate(glm::mat4(1.0f), glm::vec3(0,0,0));	
+    TranslateOriginRoof = glm::translate(glm::mat4(1.0f), glm::vec3(0,4.2,0));
+    TranslateOriginPillar = glm::translate(glm::mat4(1.0f), glm::vec3(0,2,0));
     
     /* Walls and Floor*/
     //floor
     int floor_y = -3;
-    SetTranslation(0, -3, 0, TranslateOriginFloor);
-    SetRotationX(0, RotateXFloor);
-    SetRotationZ(0, RotateZFloor);
+    TranslateOriginFloor = glm::translate(glm::mat4(1.0f), glm::vec3(0,floor_y,0));
     
     // left wall
-    SetTranslation(-floor_y, -WALL_SIZE, 0, TranslateOriginWall1);
-    SetRotationX(0, RotateXWall1);
-    SetRotationY(0, RotateYWall1);
-    SetRotationZ(90, RotateZWall1);
+    TranslateOriginWall1 = glm::translate(glm::mat4(1.0f), glm::vec3(-floor_y, -WALL_SIZE, 0));
+    RotateZWall1 = glm::rotate(glm::mat4(1.0f), (float)(90.0f*(2 * M_PI / 360)), glm::vec3(0.0f, 0.0f, 1.0f));
          
     // right wall
-    SetTranslation(-floor_y, WALL_SIZE, 0, TranslateOriginWall2);
-    SetRotationX(0, RotateXWall2);
-    SetRotationY(0, RotateYWall2);
-    SetRotationZ(90, RotateZWall2);
+    TranslateOriginWall2 = glm::translate(glm::mat4(1.0f), glm::vec3(-floor_y, WALL_SIZE, 0));
+    RotateZWall2 = glm::rotate(glm::mat4(1.0f), (float)(90.0f*(2 * M_PI / 360)), glm::vec3(0.0f, 0.0f, 1.0f));
     
     // back wall
-    SetTranslation(0, -WALL_SIZE, floor_y, TranslateOriginWall3);
-    SetRotationX(90, RotateXWall3);
-    SetRotationZ(0, RotateZWall3);
-    SetRotationY(0, RotateYWall3);
+    TranslateOriginWall3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -WALL_SIZE, floor_y));
+    RotateXWall3 = glm::rotate(glm::mat4(1.0f), (float)(90.0f*(2 * M_PI / 360)), glm::vec3(1.0f, 0.0f, 0.0f));
         
     
-    /* Translate and rotate box1 onto tip */
-    SetTranslation(2, BOX1_START_POSITION_Y, 2, TranslateOriginBox1);
-    SetRotationX(0, RotateXBox1);
-    SetRotationZ(0, RotateZBox1);
-    
-    SetTranslation(-2, BOX2_START_POSITION_Y, -2, TranslateOriginBox2);
-    SetRotationX(0, RotateXBox2);
-    SetRotationZ(0, RotateZBox2);
-    
-    SetTranslation(-2, BOX3_START_POSITION_Y, 2, TranslateOriginBox3);
-    SetRotationX(0, RotateXBox3);
-    SetRotationZ(0, RotateZBox3);
-    
-    SetTranslation( 2, BOX4_START_POSITION_Y, -2, TranslateOriginBox4);
-    SetRotationX(0, RotateXBox4);
-    SetRotationZ(0, RotateZBox4);
-    
+    TranslateOriginBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(2, BOX1_START_POSITION_Y, 2));
+    TranslateOriginBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(-2, BOX2_START_POSITION_Y, -2));
+    TranslateOriginBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(-2, BOX3_START_POSITION_Y, 2));
+    TranslateOriginBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(2, BOX4_START_POSITION_Y, -2));
+
+   
     /* Translate down */
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownGround);
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownPillar);
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownRoof);
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownBox1);
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownBox2);
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownBox3);
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDownBox4);
+    TranslateDownGround = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
+    TranslateDownPillar = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
+    TranslateDownRoof = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
+    TranslateDownBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
+    TranslateDownBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
+    TranslateDownBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
+    TranslateDownBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
 
+   
 
+    InitialTransformGround = RotateZGround * RotateXGround * TranslateOriginGround;
+    InitialTransformPillar = RotateZPillar * RotateXPillar * TranslateOriginPillar;
+    InitialTransformRoof = RotateZRoof * RotateXRoof * TranslateOriginRoof;
 
-
-    /* Initial transformation matrix */    
-    MultiplyMatrix(RotateXGround, TranslateOriginGround, InitialTransformGround);
-    MultiplyMatrix(RotateZGround, InitialTransformGround, InitialTransformGround);
     
-    MultiplyMatrix(RotateXPillar, TranslateOriginPillar, InitialTransformPillar);
-    MultiplyMatrix(RotateZPillar, InitialTransformPillar, InitialTransformPillar);
-    
-    MultiplyMatrix(RotateXRoof, TranslateOriginRoof, InitialTransformRoof);
-    MultiplyMatrix(RotateZRoof, InitialTransformRoof, InitialTransformRoof);
+    ModelMatrixFloor =  RotateZFloor * RotateXFloor  * InitialTransformFloor * TranslateOriginFloor;
+    ModelMatrixWall1 = RotateZWall1 * RotateXWall1 * InitialTransformWall1 * TranslateOriginWall1;
+    ModelMatrixWall2 = RotateZWall2 * RotateXWall2 * InitialTransformWall2 * TranslateOriginWall2;
+    ModelMatrixWall3 = RotateZWall3 * RotateXWall3 * InitialTransformWall3* TranslateOriginWall3 ;
+
+        
+    PVMMatrixFloor = ProjectionMatrix * ViewMatrix * ModelMatrixFloor;
+    PVMMatrixWall1 = ProjectionMatrix * ViewMatrix * ModelMatrixWall1;
+    PVMMatrixWall2 = ProjectionMatrix * ViewMatrix * ModelMatrixWall2;
+    PVMMatrixWall3 = ProjectionMatrix * ViewMatrix * ModelMatrixWall3;
     
     /* Walls and Floor*/
-    MultiplyMatrix(RotateXFloor, TranslateOriginFloor, InitialTransformFloor);
-    MultiplyMatrix(RotateZFloor, InitialTransformFloor, InitialTransformFloor);
-    MultiplyMatrix(InitialTransformFloor, ModelMatrixFloor, ModelMatrixFloor);
-    
-    MultiplyMatrix(RotateXWall1, TranslateOriginWall1, InitialTransformWall1);
-    MultiplyMatrix(RotateZWall1, InitialTransformWall1, InitialTransformWall1);
-    //MultiplyMatrix(RotateYWall1, InitialTransformWall1, InitialTransformWall1);
-    MultiplyMatrix(InitialTransformWall1, ModelMatrixWall1, ModelMatrixWall1);
+    InitialTransformBox1 = RotateZBox1 * RotateXBox1 * TranslateOriginBox1;
+    InitialTransformBox2 = RotateZBox2 * RotateXBox2 * TranslateOriginBox2;
+    InitialTransformBox3 = RotateZBox3 * RotateXBox3 * TranslateOriginBox3;
+    InitialTransformBox4 = RotateZBox4 * RotateXBox4 * TranslateOriginBox4;
 
-    MultiplyMatrix(RotateXWall2, TranslateOriginWall2, InitialTransformWall2);
-    MultiplyMatrix(RotateZWall2, InitialTransformWall2, InitialTransformWall2);
-   // MultiplyMatrix(RotateYWall2, InitialTransformWall2, InitialTransformWall2);
-    MultiplyMatrix(InitialTransformWall2, ModelMatrixWall2, ModelMatrixWall2);
-
-    MultiplyMatrix(RotateXWall3, TranslateOriginWall3, InitialTransformWall3);
-    MultiplyMatrix(RotateZWall3, InitialTransformWall3, InitialTransformWall3);
-    //MultiplyMatrix(RotateYWall3, InitialTransformWall3, InitialTransformWall3);
-    MultiplyMatrix(InitialTransformWall3, ModelMatrixWall3, ModelMatrixWall3);
-
-    
-    MultiplyMatrix(RotateXBox1, TranslateOriginBox1, InitialTransformBox1);
-    MultiplyMatrix(RotateZBox1, InitialTransformBox1, InitialTransformBox1);
-    
-    MultiplyMatrix(RotateXBox2, TranslateOriginBox2, InitialTransformBox2);
-    MultiplyMatrix(RotateZBox2, InitialTransformBox2, InitialTransformBox2);
-    
-    MultiplyMatrix(RotateXBox3, TranslateOriginBox3, InitialTransformBox3);
-    MultiplyMatrix(RotateZBox3, InitialTransformBox3, InitialTransformBox3);
-    
-    MultiplyMatrix(RotateXBox4, TranslateOriginBox4, InitialTransformBox4);
-    MultiplyMatrix(RotateZBox4, InitialTransformBox4, InitialTransformBox4);
 }
 
 
@@ -1462,7 +1376,7 @@ int main(int argc, char** argv)
     glutInitWindowPosition(400, 400);
     glutCreateWindow("Round round round");
 
-
+    
 
     /* Initialize GL extension wrangler */
     GLenum res = glewInit();
