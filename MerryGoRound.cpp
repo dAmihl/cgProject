@@ -121,7 +121,7 @@ GLuint WALL_IBO;
 GLfloat *vertex_buffer_suzanne;
 
 /* Arrays for holding indices of the model */
-GLushort *index_buffer_suzanne;
+GLuint *index_buffer_suzanne;
 
 /* Structures for loading of OBJ data */
 obj_scene_data suzanne_data;
@@ -1048,7 +1048,7 @@ void SetupDataBuffers()
     
     glGenBuffers(1, &SUZANNE_IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLushort), index_buffer_suzanne, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLuint), index_buffer_suzanne, GL_STATIC_DRAW);
  
  /* -------------------------------------------------------------------------*/   
     
@@ -1195,9 +1195,11 @@ void Initialize(void)
     int success;
     
     /* Load suzanne */
+    fprintf(stderr, "Before");
     char* filename_suzanne = (char*) "models/suzanne.obj";
+    fprintf(stderr, "After1");
     success = parse_obj_scene(&suzanne_data, filename_suzanne);
-    
+    fprintf(stderr, "After2");
     if(!success)
         printf("Could not load file 'suzanne'. Exiting. \n");
     
@@ -1206,7 +1208,7 @@ void Initialize(void)
     int indx = suzanne_data.face_count;
 
     vertex_buffer_suzanne = (GLfloat*) calloc (vert*3, sizeof(GLfloat));
-    index_buffer_suzanne = (GLushort*) calloc (indx*3, sizeof(GLushort));
+    index_buffer_suzanne = (GLuint*) calloc (indx*3, sizeof(GLuint));
   
     /* Vertices */
     for(i=0; i<vert; i++)
@@ -1219,9 +1221,9 @@ void Initialize(void)
     /* Indices */
     for(i=0; i<indx; i++)
     {
-	index_buffer_suzanne[i*3] = (GLushort)(suzanne_data.face_list[i])->vertex_index[0];
-	index_buffer_suzanne[i*3+1] = (GLushort)(suzanne_data.face_list[i])->vertex_index[1];
-	index_buffer_suzanne[i*3+2] = (GLushort)(suzanne_data.face_list[i])->vertex_index[2];
+	index_buffer_suzanne[i*3] = (GLuint)(suzanne_data.face_list[i])->vertex_index[0];
+	index_buffer_suzanne[i*3+1] = (GLuint)(suzanne_data.face_list[i])->vertex_index[1];
+	index_buffer_suzanne[i*3+2] = (GLuint)(suzanne_data.face_list[i])->vertex_index[2];
     }
     
     /* Set background (clear) color to white */ 

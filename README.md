@@ -12,6 +12,9 @@ KOFLER Gerald
 
 GAUGLER Benjamin
 
+## Sources ##
+Horse mesh from: http://tf3dm.com/3d-model/horse-883.html
+
 
 ## Controls
 
