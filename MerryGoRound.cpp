@@ -309,7 +309,7 @@ int mouseDeltaY = 0;
 float rotation_speed_factor = START_ROTATION_SPEED;
 int rotation_direction = 1;
 
-float updown_speed_factor = START_ROTATION_SPEED;
+float updown_speed_factor = 1.0f;
 
 float zoom = 1.0;
 
@@ -486,14 +486,14 @@ GLfloat wall_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
 };   
 
 GLfloat wall_color_buffer_data[] = { /* RGB color values for 8 vertices */
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
 }; 
 
 GLushort wall_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
@@ -534,11 +534,11 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    /*
+    
     glEnableVertexAttribArray(vColor);
     glBindBuffer(GL_ARRAY_BUFFER, CBO);
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);   
-    */
+    
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     
@@ -556,7 +556,7 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     
     /*	-------------------------------------------------------------------------- */
     /* Set state to only draw wireframe (no lighting used, yet) */
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     /* Issue draw command, using indexed triangle list */
     glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
@@ -805,8 +805,8 @@ void OnIdle()
         glm::mat4 RotationMatrixAnimMouseZ;
 	glm::mat4 TranslationMatrixMouse;
 	
-        RotationMatrixAnimMouseX = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaY, glm::vec3(1.0f, 0.0f, 0.0f));
-        RotationMatrixAnimMouseY = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaX, glm::vec3(0.0f, 1.0f, 0.0f));
+        RotationMatrixAnimMouseX = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaY/deltaTime, glm::vec3(1.0f, 0.0f, 0.0f));
+        RotationMatrixAnimMouseY = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaX/deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
         RotationMatrixAnimMouseZ = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
               
         ViewMatrix = RotationMatrixAnimMouseX * ViewMatrix;
@@ -848,8 +848,8 @@ void OnIdle()
      
     if(anim) {
         
-        float translationCameraX, translationCameraY, translationCameraZ = 0.0f;
-        
+        float translationCameraX = 0.0f, translationCameraY = 0.0f, translationCameraZ = 0.0f;
+        TranslationMatrixCamera = glm::mat4(1.0f);
     /* Increment rotation angles and update matrix */
         if(axis == Xaxis)
 	{
@@ -862,7 +862,7 @@ void OnIdle()
 	{
 	    angleY = fmod( 0.15 * deltaTime, 360.0); 
             double angleRad = (2 * M_PI / 360) * angleY;
-            translationCameraX =  cos(angleRad) /1.5f  ;
+            translationCameraX =  cos(angleRad) /1.5f;
             RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	else if(axis == Zaxis)
@@ -871,6 +871,7 @@ void OnIdle()
             double angleRad = (2 * M_PI / 360) * angleZ;
             RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(0.0f, 0.0f, 1.0f));
 	}
+      
 
         TranslationMatrixCamera = glm::translate(glm::mat4(1.0f), glm::vec3(translationCameraX, translationCameraY, translationCameraZ));
         ViewMatrix = TranslationMatrixCamera * RotationMatrixCamera * ViewMatrix;
