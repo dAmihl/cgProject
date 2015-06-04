@@ -123,6 +123,8 @@ GLfloat *vertex_buffer_suzanne;
 /* Arrays for holding indices of the model */
 GLuint *index_buffer_suzanne;
 
+GLfloat *normal_buffer_suzanne;
+
 /* Structures for loading of OBJ data */
 obj_scene_data suzanne_data;
 
@@ -132,12 +134,14 @@ GLuint SUZANNE_VBO;
 /* Define handles to two index buffer objects */
 GLuint SUZANNE_IBO;
 
+GLuint SUZANNE_NBO;
+
 
 
 
 
 /* Indices to vertex attributes; in this case positon and color */ 
-enum DataID {vPosition = 0, vColor = 1}; 
+enum DataID {vPosition = 0, vColor = 1, vNormals = 2}; 
 
 
 
@@ -147,6 +151,8 @@ static const char* FragmentShaderString;
 
 GLuint ShaderProgram;
 
+GLuint LightID;
+glm::vec3 lightPos;
 
 
 glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
@@ -527,7 +533,7 @@ GLushort wall_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 *******************************************************************/
 
 
-void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
+void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::mat4 pvm){
     
 
     glEnableVertexAttribArray(vPosition);
@@ -539,6 +545,18 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     glBindBuffer(GL_ARRAY_BUFFER, CBO);
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);   
     
+    // 3rd attribute buffer : normals
+		glEnableVertexAttribArray(vNormals);
+		glBindBuffer(GL_ARRAY_BUFFER, NBO);
+		glVertexAttribPointer(
+                        vNormals,                                // attribute
+			3,                                // size
+			GL_FLOAT,                         // type
+			GL_FALSE,                         // normalized?
+			0,                                // stride
+			(void*)0                          // array buffer offset
+		);
+
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     
@@ -554,6 +572,8 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     }
     glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(pvm));  
     
+    glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+    
     /*	-------------------------------------------------------------------------- */
     /* Set state to only draw wireframe (no lighting used, yet) */
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -568,7 +588,54 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     /* Disable attributes */
     glDisableVertexAttribArray(vPosition);
     glDisableVertexAttribArray(vColor);   
+    glDisableVertexAttribArray(vNormals);   
+
+}
+
+
+void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     
+
+    glEnableVertexAttribArray(vPosition);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    
+    glEnableVertexAttribArray(vColor);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO);
+    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);   
+ 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    
+    GLint size; 
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    
+ /* Associate program with shader matrices */
+    GLint PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
+    if (PVMMatrixID == -1) 
+    {
+        fprintf(stderr, "Could not bind uniform ProjectionViewModelMatrix\n");
+        exit(-1);
+    }
+    glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(pvm));  
+    
+    glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+    
+    /*	-------------------------------------------------------------------------- */
+    /* Set state to only draw wireframe (no lighting used, yet) */
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    /* Issue draw command, using indexed triangle list */
+    glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+
+    /* Issue draw command, using indexed triangle list */
+    //glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    /*	--------------------------------------------------------------------------- */
+    
+    /* Disable attributes */
+    glDisableVertexAttribArray(vPosition);
+    glDisableVertexAttribArray(vColor);   
+
 }
 
 /*
@@ -597,10 +664,10 @@ void Display()
     DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall2);
     DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall3);
 
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne1);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne2);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne3);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, PVMMatrixSuzanne4);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SUZANNE_NBO, PVMMatrixSuzanne1);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, PVMMatrixSuzanne2);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, PVMMatrixSuzanne3);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, PVMMatrixSuzanne4);
 
 
     /* Swap between front and back buffer */ 
@@ -1038,12 +1105,16 @@ void SetupDataBuffers()
     glBufferData(GL_ARRAY_BUFFER, sizeof(wall_color_buffer_data), wall_color_buffer_data, GL_STATIC_DRAW);
     
     
- /* -------------------------------------------------------------------------*/
+ /* ------------------------------------------------------------    -------------*/
  /*         Added for exercise 2                                             */
    
     glGenBuffers(1, &SUZANNE_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_VBO);
     glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_count*3*sizeof(GLfloat), vertex_buffer_suzanne, GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &SUZANNE_NBO);
+    glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_NBO);
+    glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_normal_count*3*sizeof(GLfloat), normal_buffer_suzanne, GL_STATIC_DRAW);
 
     
     glGenBuffers(1, &SUZANNE_IBO);
@@ -1118,8 +1189,8 @@ void CreateShaderProgram()
     }
 
     /* Load shader code from file */
-    VertexShaderString = LoadShader("shaders/vertexshader.vs");
-    FragmentShaderString = LoadShader("shaders/fragmentshader.fs");
+    VertexShaderString = LoadShader("shaders/standard.vs");
+    FragmentShaderString = LoadShader("shaders/standard.fs");
 
     /* Separately add vertex and fragment shader to program */
     AddShader(ShaderProgram, VertexShaderString, GL_VERTEX_SHADER);
@@ -1154,6 +1225,11 @@ void CreateShaderProgram()
 
     /* Put linked shader program into drawing pipeline */
     glUseProgram(ShaderProgram);
+    
+    /*
+     Get Uniform Light matrix from Shader
+     */
+    LightID = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
 }
 
 /*
@@ -1206,9 +1282,12 @@ void Initialize(void)
     /*  Copy mesh data from structs into appropriate arrays */ 
     int vert = suzanne_data.vertex_count;
     int indx = suzanne_data.face_count;
-
+    int normals = suzanne_data.vertex_normal_count;
+    
     vertex_buffer_suzanne = (GLfloat*) calloc (vert*3, sizeof(GLfloat));
     index_buffer_suzanne = (GLuint*) calloc (indx*3, sizeof(GLuint));
+    normal_buffer_suzanne = (GLfloat*) calloc (normals*3, sizeof(GLfloat));
+
   
     /* Vertices */
     for(i=0; i<vert; i++)
@@ -1224,6 +1303,14 @@ void Initialize(void)
 	index_buffer_suzanne[i*3] = (GLuint)(suzanne_data.face_list[i])->vertex_index[0];
 	index_buffer_suzanne[i*3+1] = (GLuint)(suzanne_data.face_list[i])->vertex_index[1];
 	index_buffer_suzanne[i*3+2] = (GLuint)(suzanne_data.face_list[i])->vertex_index[2];
+    }
+    
+     /* Normals */
+    for(i=0; i<normals; i++)
+    {
+	normal_buffer_suzanne[i*3] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[0];
+	normal_buffer_suzanne[i*3+1] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[1];
+	normal_buffer_suzanne[i*3+2] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[2];
     }
     
     /* Set background (clear) color to white */ 
@@ -1351,6 +1438,12 @@ void Initialize(void)
     InitialTransformBox3 = RotateZBox3 * RotateXBox3 * TranslateOriginBox3;
     InitialTransformBox4 = RotateZBox4 * RotateXBox4 * TranslateOriginBox4;
 
+    
+    /*
+     Set Light source position
+     */
+    lightPos = glm::vec3(4,4,4);
+    //glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
 
