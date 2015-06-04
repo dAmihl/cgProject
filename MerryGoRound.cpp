@@ -141,7 +141,7 @@ GLuint SUZANNE_NBO;
 
 
 /* Indices to vertex attributes; in this case positon and color */ 
-enum DataID {vPosition = 0, vColor = 1, vNormals = 2}; 
+enum DataID {vPosition = 0, vColor = 3, vNormals = 2}; 
 
 
 
@@ -151,9 +151,12 @@ static const char* FragmentShaderString;
 
 GLuint ShaderProgram;
 
-GLuint LightID;
-glm::vec3 lightPos;
+//glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 0.0f);
 
+ GLuint PVMMatrixID;
+ GLuint ViewMatrixID;
+ GLuint ModelMatrixID;
+ GLuint LightID;
 
 glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
 glm::mat4 ViewMatrix; /* Camera view matrix */ 
@@ -533,8 +536,11 @@ GLushort wall_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 *******************************************************************/
 
 
-void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::mat4 pvm){
+void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::mat4 ModelMatrix){
     
+    glm::mat4 mView = ViewMatrix;
+    glm::mat4 mProjection = ProjectionMatrix;
+    glm::mat4 PVM = mProjection * mView * ModelMatrix;
 
     glEnableVertexAttribArray(vPosition);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -564,14 +570,11 @@ void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
     
  /* Associate program with shader matrices */
-    GLint PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
-    if (PVMMatrixID == -1) 
-    {
-        fprintf(stderr, "Could not bind uniform ProjectionViewModelMatrix\n");
-        exit(-1);
-    }
-    glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(pvm));  
-    
+ 
+    glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
+    glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, glm::value_ptr(mView));
+    glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(PVM));  
+    glm::vec3 lightPos = glm::vec3(4,4,4);
     glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
     
     /*	-------------------------------------------------------------------------- */
@@ -593,8 +596,9 @@ void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::
 }
 
 
-void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
+void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 ModelMatrix){
     
+    glm::mat4 PVM = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
     glEnableVertexAttribArray(vPosition);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -611,14 +615,10 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 pvm){
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
     
  /* Associate program with shader matrices */
-    GLint PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
-    if (PVMMatrixID == -1) 
-    {
-        fprintf(stderr, "Could not bind uniform ProjectionViewModelMatrix\n");
-        exit(-1);
-    }
-    glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(pvm));  
-    
+    glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(PVM));  
+    glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
+    glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
+    glm::vec3 lightPos = glm::vec3(4,4,4);
     glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
     
     /*	-------------------------------------------------------------------------- */
@@ -654,20 +654,20 @@ void Display()
     /* Clear window; color specified in 'Initialize()' */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, PVMMatrixGround);
-    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, PVMMatrixRoof);
-    DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, PVMMatrixPillar);
+    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixGround);
+    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
+    DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
     
     /* Walls and Floor*/
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixFloor);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall1);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall2);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, PVMMatrixWall3);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixFloor);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall1);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall2);
+    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall3);
 
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SUZANNE_NBO, PVMMatrixSuzanne1);
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, PVMMatrixSuzanne2);
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, PVMMatrixSuzanne3);
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, PVMMatrixSuzanne4);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SUZANNE_NBO, SuzanneMatrix1);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix2);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix3);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix4);
 
 
     /* Swap between front and back buffer */ 
@@ -1164,6 +1164,7 @@ void AddShader(GLuint ShaderProgram, const char* ShaderCode, GLenum ShaderType)
 
     /* Associate shader with shader program */
     glAttachShader(ShaderProgram, ShaderObj);
+ 
 }
 
 
@@ -1226,10 +1227,17 @@ void CreateShaderProgram()
     /* Put linked shader program into drawing pipeline */
     glUseProgram(ShaderProgram);
     
-    /*
-     Get Uniform Light matrix from Shader
-     */
+    
+    PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
+    ViewMatrixID = glGetUniformLocation(ShaderProgram, "V");
+    ModelMatrixID = glGetUniformLocation(ShaderProgram, "M");
     LightID = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
+
+    if (PVMMatrixID == -1) 
+    {
+        fprintf(stderr, "Could not bind uniform ProjectionViewModelMatrix\n");
+        exit(-1);
+    }
 }
 
 /*
@@ -1314,7 +1322,7 @@ void Initialize(void)
     }
     
     /* Set background (clear) color to white */ 
-    glClearColor(1.0, 1.0, 1.0, 0.0);
+    glClearColor(0.0f, 0.0f, 0.3f, 0.0);
 
     /* Enable depth testing */
     glEnable(GL_DEPTH_TEST);
@@ -1439,11 +1447,8 @@ void Initialize(void)
     InitialTransformBox4 = RotateZBox4 * RotateXBox4 * TranslateOriginBox4;
 
     
-    /*
-     Set Light source position
-     */
-    lightPos = glm::vec3(4,4,4);
-    //glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+    
+    
 }
 
 
