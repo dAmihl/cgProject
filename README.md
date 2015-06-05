@@ -13,9 +13,7 @@ KOFLER Gerald
 GAUGLER Benjamin
 
 ## Sources ##
-Horse mesh from: http://tf3dm.com/3d-model/horse-883.html
-
-
+We are using the external OBJ-Loader "TinyOBJLoader": http://syoyo.github.io/tinyobjloader/
 ## Controls
 
 Key '1': Activate fixed camera movement.

@@ -7,7 +7,6 @@ TARGET = MerryGoRound
 CFLAGS = -g -Wall 
 LDLIBS = -lm -lglut -lGLEW -lGL
 INCLUDES = -Isource
-
 SRC_DIR = source
 BUILD_DIR = build
 VPATH = source

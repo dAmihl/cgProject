@@ -21,7 +21,7 @@
 #define USES_MESA_DRIVER 1
 
 
-#define WALL_SIZE 6.0
+#define WALL_SIZE 20.0
 #define WALL_HEIGHT 0.1
 
 #define MAX_ROTATION_SPEED 1.0
@@ -44,12 +44,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <vector>
+#include <cstdlib>
 
 /* GLM includes - adjust path as required for local installation */
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp" /* Provides glm::translate, glm::rotate, 
                                          * glm::scale, glm::perspective */
 #include "glm/gtc/type_ptr.hpp"         /* Vector/matrix handling */
+
+#include "tinyobjloader/tiny_obj_loader.cc"
 
 /* OpenGL includes */
 #include <GL/glew.h>
@@ -118,12 +122,12 @@ GLuint WALL_IBO;
 /* for the loaded OBJ */
 
 /* Arrays for holding vertex data of the model */
-GLfloat *vertex_buffer_suzanne;
+std::vector<GLfloat> vertex_buffer_suzanne;
 
 /* Arrays for holding indices of the model */
-GLuint *index_buffer_suzanne;
+std::vector<GLuint> index_buffer_suzanne;
 
-GLfloat *normal_buffer_suzanne;
+std::vector<GLfloat> normal_buffer_suzanne;
 
 /* Structures for loading of OBJ data */
 obj_scene_data suzanne_data;
@@ -135,6 +139,7 @@ GLuint SUZANNE_VBO;
 GLuint SUZANNE_IBO;
 
 GLuint SUZANNE_NBO;
+
 
 
 
@@ -415,14 +420,14 @@ GLfloat box1_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
 };   
 
 GLfloat box1_color_buffer_data[] = { /* RGB color values for 8 vertices */
-    0.0, 0.3, 0.0,
-    0.0, 0.3, 0.0,
-    0.0, 0.3, 0.0,
-    0.0, 0.3, 0.0,
-    0.0, 0.3, 0.0,
-    0.0, 0.3, 0.0,
-    0.0, 0.3, 0.0,
-    0.0, 0.3, 0.0,
+    0.0, 0.0, 0.5,
+    0.0, 0.0, 0.5,
+    0.0, 0.0, 0.5,
+    0.0, 0.0, 0.5,
+    0.0, 0.0, 0.5,
+    0.0, 0.0, 0.5,
+    0.0, 0.0, 0.5,
+    0.0, 0.0, 0.5,
 }; 
 
 GLushort box1_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
@@ -574,7 +579,7 @@ void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, glm::value_ptr(mView));
     glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(PVM));  
-    glm::vec3 lightPos = glm::vec3(4,4,4);
+    glm::vec3 lightPos = glm::vec3(0,4,0);
     glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
     
     /*	-------------------------------------------------------------------------- */
@@ -582,7 +587,8 @@ void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     /* Issue draw command, using indexed triangle list */
-    glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, size/sizeof(GLuint), GL_UNSIGNED_INT, 0);
+    //glDrawArrays(GL_TRIANGLES, 0, size/sizeof(GLuint));
 
     /* Issue draw command, using indexed triangle list */
     //glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
@@ -613,7 +619,7 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 ModelMatrix){
     
     GLint size; 
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-    
+
  /* Associate program with shader matrices */
     glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(PVM));  
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
@@ -627,6 +633,7 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 ModelMatrix){
 
     /* Issue draw command, using indexed triangle list */
     glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+   //glDrawArrays(GL_TRIANGLES, 0, size/sizeof(GLuint));
 
     /* Issue draw command, using indexed triangle list */
     //glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
@@ -664,11 +671,16 @@ void Display()
     DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall2);
     DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall3);
 
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SUZANNE_NBO, SuzanneMatrix1);
+    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix1);
     DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix2);
     DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix3);
     DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix4);
-
+/*
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix1);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix2);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix3);
+    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix4);
+*/
 
     /* Swap between front and back buffer */ 
     glutSwapBuffers();
@@ -1110,16 +1122,16 @@ void SetupDataBuffers()
    
     glGenBuffers(1, &SUZANNE_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_VBO);
-    glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_count*3*sizeof(GLfloat), vertex_buffer_suzanne, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertex_buffer_suzanne.size()*sizeof(GLfloat), &vertex_buffer_suzanne[0], GL_STATIC_DRAW);
     
     glGenBuffers(1, &SUZANNE_NBO);
     glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_NBO);
-    glBufferData(GL_ARRAY_BUFFER, suzanne_data.vertex_normal_count*3*sizeof(GLfloat), normal_buffer_suzanne, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, normal_buffer_suzanne.size()*sizeof(GLfloat), &normal_buffer_suzanne[0], GL_STATIC_DRAW);
 
     
     glGenBuffers(1, &SUZANNE_IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, suzanne_data.face_count*3*sizeof(GLuint), index_buffer_suzanne, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_suzanne.size()*sizeof(GLuint), &index_buffer_suzanne[0], GL_STATIC_DRAW);
  
  /* -------------------------------------------------------------------------*/   
     
@@ -1272,55 +1284,122 @@ void setupIntelMesaConfiguration(){
 * vertex buffer objects, and to setup the vertex and fragment shader
 *
 *******************************************************************/
+void LoadMesh(){
+    std::string inputfile = "models/teapot.obj";
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    
+    fprintf(stderr, "Loading mesh..");
+     
+    std::string err = tinyobj::LoadObj(shapes, materials, inputfile.c_str());
+
+    if (!err.empty()) {
+        fprintf(stderr, "Error loading obj File!");
+      exit(1);
+    }else{
+     fprintf(stderr, "Mesh loaded!");
+    }
+    //fprintf(stdout, "Number of shapes: %d\n",shapes.size());
+    
+    int numVertices = shapes[0].mesh.positions.size();
+    int numIndices = shapes[0].mesh.indices.size();
+    int numNormals = shapes[0].mesh.normals.size();
+    
+    fprintf(stderr, "Number of vertics: %d \n", numVertices);
+    fprintf(stderr, "Number of indices: %d\n", numIndices);
+    fprintf(stderr, "Number of normals: %d\n",numNormals);
+    
+    fprintf(stderr, "Beginning parsing..");
+    
+    
+    
+/*    vertex_buffer_suzanne = (GLfloat*) calloc (numVertices*3, sizeof(GLfloat));
+    index_buffer_suzanne = (GLuint*) calloc (numIndices*3, sizeof(GLuint));
+    normal_buffer_suzanne = (GLfloat*) calloc (numNormals*3, sizeof(GLfloat));
+    */
+    vertex_buffer_suzanne = shapes[0].mesh.positions;
+    index_buffer_suzanne = shapes[0].mesh.indices;
+    normal_buffer_suzanne = shapes[0].mesh.normals;
+    
+    fprintf(stderr, "Parsing vertices..");
+   /*for (size_t v = 0; v < shapes[0].mesh.positions.size() / 3; v++) {
+        vertex_buffer_suzanne[v*3] = (GLfloat)(shapes[0].mesh.positions[v*3]);
+	vertex_buffer_suzanne[v*3+1] = (GLfloat)(shapes[0].mesh.positions[v*3+1]);
+	vertex_buffer_suzanne[v*3+2] = (GLfloat)(shapes[0].mesh.positions[v*3+2]);
+    }*/
+    fprintf(stderr, "Parsing indices..");
+    /* Indices */
+     /*for (size_t v = 0; v < shapes[0].mesh.indices.size() / 3; v++) {
+	index_buffer_suzanne[v*3] = (GLuint)(shapes[0].mesh.indices[v*3]);
+	index_buffer_suzanne[v*3+1] = (GLuint)(shapes[0].mesh.indices[v*3+1]);
+	index_buffer_suzanne[v*3+2] = (GLuint)(shapes[0].mesh.indices[v*3+2]);
+    }*/
+        fprintf(stderr, "Parsing normals..");
+     /* Normals */
+    /*for (size_t v = 0; v < shapes[0].mesh.normals.size() / 3; v++) {
+	normal_buffer_suzanne[v*3] = (GLfloat)(shapes[0].mesh.normals[v*3]);
+	normal_buffer_suzanne[v*3+1] = (GLfloat)(shapes[0].mesh.normals[v*3+1]);
+	normal_buffer_suzanne[v*3+2] = (GLfloat)(shapes[0].mesh.normals[v*3+2]);
+    }
+    */
+    fprintf(stderr, "Parsing finished.");
+}
+
 
 void Initialize(void)
 {   
-    int i;
-    int success;
+    //int i;
+    //int success;
+    
+    LoadMesh();
+    
     
     /* Load suzanne */
-    fprintf(stderr, "Before");
-    char* filename_suzanne = (char*) "models/suzanne.obj";
-    fprintf(stderr, "After1");
+    /*char* filename_suzanne = (char*) "models/Tiger.obj";
     success = parse_obj_scene(&suzanne_data, filename_suzanne);
-    fprintf(stderr, "After2");
     if(!success)
         printf("Could not load file 'suzanne'. Exiting. \n");
+    */
     
+   
+
+            
+            
     /*  Copy mesh data from structs into appropriate arrays */ 
-    int vert = suzanne_data.vertex_count;
+   /*int vert = suzanne_data.vertex_count;
     int indx = suzanne_data.face_count;
     int normals = suzanne_data.vertex_normal_count;
+    
+    fprintf(stderr, "Number Normals: %d", normals);
     
     vertex_buffer_suzanne = (GLfloat*) calloc (vert*3, sizeof(GLfloat));
     index_buffer_suzanne = (GLuint*) calloc (indx*3, sizeof(GLuint));
     normal_buffer_suzanne = (GLfloat*) calloc (normals*3, sizeof(GLfloat));
-
+*/
   
     /* Vertices */
-    for(i=0; i<vert; i++)
+    /*for(i=0; i<vert; i++)
     {
         vertex_buffer_suzanne[i*3] = (GLfloat)(suzanne_data.vertex_list[i])->e[0];
 	vertex_buffer_suzanne[i*3+1] = (GLfloat)(suzanne_data.vertex_list[i])->e[1];
 	vertex_buffer_suzanne[i*3+2] = (GLfloat)(suzanne_data.vertex_list[i])->e[2];
-    }
+    }*/
 
     /* Indices */
-    for(i=0; i<indx; i++)
+    /*for(i=0; i<indx; i++)
     {
 	index_buffer_suzanne[i*3] = (GLuint)(suzanne_data.face_list[i])->vertex_index[0];
 	index_buffer_suzanne[i*3+1] = (GLuint)(suzanne_data.face_list[i])->vertex_index[1];
 	index_buffer_suzanne[i*3+2] = (GLuint)(suzanne_data.face_list[i])->vertex_index[2];
-    }
+    }*/
     
      /* Normals */
-    for(i=0; i<normals; i++)
+   /* for(i=0; i<normals; i++)
     {
 	normal_buffer_suzanne[i*3] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[0];
 	normal_buffer_suzanne[i*3+1] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[1];
 	normal_buffer_suzanne[i*3+2] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[2];
-    }
-    
+    }*/
     /* Set background (clear) color to white */ 
     glClearColor(0.0f, 0.0f, 0.3f, 0.0);
 
@@ -1363,7 +1442,8 @@ void Initialize(void)
     SuzanneMatrix2 = glm::mat4(1.0f);
     SuzanneMatrix3 = glm::mat4(1.0f);
     SuzanneMatrix4 = glm::mat4(1.0f);
-
+    
+    
               
     BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
     BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
@@ -1440,15 +1520,19 @@ void Initialize(void)
     PVMMatrixWall2 = ProjectionMatrix * ViewMatrix * ModelMatrixWall2;
     PVMMatrixWall3 = ProjectionMatrix * ViewMatrix * ModelMatrixWall3;
     
+    
+    
     /* Walls and Floor*/
     InitialTransformBox1 = RotateZBox1 * RotateXBox1 * TranslateOriginBox1;
     InitialTransformBox2 = RotateZBox2 * RotateXBox2 * TranslateOriginBox2;
     InitialTransformBox3 = RotateZBox3 * RotateXBox3 * TranslateOriginBox3;
     InitialTransformBox4 = RotateZBox4 * RotateXBox4 * TranslateOriginBox4;
+    
+    InitialTransformBox1 = glm::scale(InitialTransformBox1, glm::vec3(0.5f));
+    InitialTransformBox2 = glm::scale(InitialTransformBox2, glm::vec3(0.5f));
+    InitialTransformBox3 = glm::scale(InitialTransformBox3, glm::vec3(0.5f));
+    InitialTransformBox4 = glm::scale(InitialTransformBox4, glm::vec3(0.5f));
 
-    
-    
-    
 }
 
 
