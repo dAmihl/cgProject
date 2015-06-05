@@ -4,7 +4,7 @@ LD = gcc
 OBJ = MerryGoRound.o LoadShader.o Matrix.o StringExtra.o OBJParser.o List.o
 TARGET = MerryGoRound
 #-Wextra
-CFLAGS = -g -Wall 
+CFLAGS = -g -Wall -std=c++0x
 LDLIBS = -lm -lglut -lGLEW -lGL
 INCLUDES = -Isource
 SRC_DIR = source

@@ -14,6 +14,8 @@ GAUGLER Benjamin
 
 ## Sources ##
 We are using the external OBJ-Loader "TinyOBJLoader": http://syoyo.github.io/tinyobjloader/
+
+The fragment and vertex shaders are built with help of http://www.opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/http://www.opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/
 ## Controls
 
 Key '1': Activate fixed camera movement.
@@ -27,6 +29,15 @@ Key '2': Activate free camera movement.
 Key 'q': Exit program
 
 
+Key 'p': Toggle animation of the MerryGoRound.
+
+Key 'i': Increase Light intensity of the upper main light.
+
+Key 'k': Decrease light intensity of the upper main light.
+
+Key 'u': Increase light color of the upper main light by a random value.
+
+Key 'j': Decrease light color of the upper main light by a random value.
 
 
 ===============================

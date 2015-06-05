@@ -20,12 +20,17 @@
 */
 #define USES_MESA_DRIVER 1
 
+/*
+ *Prints number of vertices, indices and normals of the loaded obj mesh 
+ * when set to 1
+ */
+#define MESH_DEBUG 0
 
 #define WALL_SIZE 20.0
 #define WALL_HEIGHT 0.1
 
-#define MAX_ROTATION_SPEED 1.0
-#define START_ROTATION_SPEED 0.1
+#define MAX_ROTATION_SPEED 0.5
+#define START_ROTATION_SPEED 0.05
 
 #define GROUND_SIZE 3.0
 #define GROUND_HEIGHT 0.2
@@ -53,37 +58,22 @@
                                          * glm::scale, glm::perspective */
 #include "glm/gtc/type_ptr.hpp"         /* Vector/matrix handling */
 
+/*
+ Include TinyObjLoader
+ * Source: look at README
+ */
 #include "tinyobjloader/tiny_obj_loader.cc"
 
 /* OpenGL includes */
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
-
-/* Local includes */
-/* Local includes */
-
-    #include "LoadShader.h"   /* Provides loading function for shader code */
-
-#include "Matrix.h"
-#include "OBJParser.h"
+#include "LoadShader.h"   /* Provides loading function for shader code */
 
 
 /*----------------------------------------------------------------*/
 /* Define handle to a vertex array object (only for MESA USE) */
 GLuint VAO;
-
-
-/* Define handle to a vertex buffer object */
-GLuint GROUND_VBO;
-
-/* Define handle to a color buffer object */
-GLuint GROUND_CBO; 
-
-/* Define handle to an index buffer object */
-GLuint GROUND_IBO;
-
-
 
 /* Define handle to a vertex buffer object */
 GLuint HORSEBOX_VBO;
@@ -93,19 +83,6 @@ GLuint HORSEBOX_CBO;
 
 /* Define handle to an index buffer object */
 GLuint HORSEBOX_IBO;
-
-
-
-/* Define handle to a vertex buffer object */
-GLuint PILLAR_VBO;
-
-/* Define handle to a color buffer object */
-GLuint PILLAR_CBO; 
-
-/* Define handle to an index buffer object */
-GLuint PILLAR_IBO;
-
-
 
 
 /* Define handle to a vertex buffer object */
@@ -140,24 +117,36 @@ std::vector<GLuint> index_buffer_pavillon;
 
 std::vector<GLfloat> normal_buffer_pavillon;
 
-/* Define handles to two vertex buffer objects */
+/* for the loaded Floor obj*/
+
+/* Arrays for holding vertex data of the model */
+std::vector<GLfloat> vertex_buffer_floor;
+
+/* Arrays for holding indices of the model */
+std::vector<GLuint> index_buffer_floor;
+
+std::vector<GLfloat> normal_buffer_floor;
+
+/*
+ *Define VertexBuffer, IndexBuffer and NormalsBuffer for the Merry Object
+ */
 GLuint SUZANNE_VBO;
-
-/* Define handles to two index buffer objects */
 GLuint SUZANNE_IBO;
-
 GLuint SUZANNE_NBO;
 
-/* Define handles to two vertex buffer objects */
+/*
+ *Define VertexBuffer, IndexBuffer and NormalsBuffer for the MerryGoRound Pavillon
+ */
 GLuint PAVILLON_VBO;
-
-/* Define handles to two index buffer objects */
 GLuint PAVILLON_IBO;
-
 GLuint PAVILLON_NBO;
 
-
-
+/*
+ *Define VertexBuffer, IndexBuffer and NormalsBuffer for the Floor object
+ */
+GLuint FLOOR_VBO;
+GLuint FLOOR_IBO;
+GLuint FLOOR_NBO;
 
 /* Indices to vertex attributes; in this case positon and color */ 
 enum DataID {vPosition = 0, vColor = 3, vNormals = 2}; 
@@ -175,90 +164,85 @@ GLuint ShaderProgram;
  GLuint PVMMatrixID;
  GLuint ViewMatrixID;
  GLuint ModelMatrixID;
- GLuint LightSource1ID;
- GLuint LightSource2ID;
- GLuint LightSource3ID;
- GLuint LightSource4ID;
+ GLuint LightSourcesID;
+ GLuint LightColorsID;
+ GLuint LightIntensitiesID;
+ 
+ /*
+  * Light sources and Configurations
+  */
+ const int numberLightSources = 4;
 
- glm::vec3 LightSource1Position = glm::vec3(2.0f, 2.0f, 2.0f);
- glm::vec3 LightSource2Position = glm::vec3(-2.0f, 2.0f, -2.0f);
- glm::vec3 LightSource3Position = glm::vec3(-2.0f, 2.0f, 2.0f);
- glm::vec3 LightSource4Position = glm::vec3(2.0f, 2.0f, -2.0f);
+ /*
+  Positions of the lightsources
+  */
+ std::vector<GLfloat> lightSources = {
+     0.0f, 10.0f, 0.0f,
+     -2.0f, 2.0f, -2.0f,
+     -2.0f, 2.0f, 2.0f,
+     2.0f, 2.0f, -2.0f
+ };
+ 
+ /*
+  * Color vector of each lightsource
+  */
+  std::vector<GLfloat> lightColors = {
+     1, 1, 1,
+     1, 0, 0,
+     0, 1, 0,
+     0, 0, 1
+ };
+  
+  /*
+   * Intensity of each lightsource
+   */
+  std::vector<GLfloat> lightIntensities = {
+      60, 30, 30, 30
+  };
 
-
+  
 glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
 glm::mat4 ViewMatrix; /* Camera view matrix */ 
 glm::mat4 PVMMatrix;        /* Final combined transformation */
+
 float camera_disp = -25.0;
 float camera_aproach = 10.0;
 
-GLboolean anim = GL_TRUE;
+GLboolean animCamera = GL_TRUE; // if the camera is animated
+GLboolean animMerryGoRound = GL_TRUE; // if the merry go round is animated
 
 const int CAMERA_FREE_MOVE = 1;
 const int CAMERA_FIXED_MOVE = 0;
-int cameraMode = 0;
+int cameraMode = 0; // current camera mode
 
+/*
+ Handles for the WASD Movement
+ */
 GLboolean camMoveForward = GL_FALSE;
 GLboolean camMoveBack = GL_FALSE;
 GLboolean camMoveLeft = GL_FALSE;
 GLboolean camMoveRight = GL_FALSE;
 
 
-
-glm::mat4 ModelMatrixGround;	/* Model matrix for the ground layer */
-glm::mat4 ModelMatrixRoof;	/* Model matrix for the roof (top layer) */
-glm::mat4 ModelMatrixPillar;	/* Model matrix for the pillar */
-
 glm::mat4 ModelMatrixFloor; /* Model matrix for the floor entity*/
-glm::mat4 ModelMatrixWall1; /* Model matrix for the wall entity*/
-glm::mat4 ModelMatrixWall2; /* Model matrix for the wall entity*/
-glm::mat4 ModelMatrixWall3; /* Model matrix for the wall entity*/
-
-
+glm::mat4 InitialTransformFloor;
+/*
+ Model matrix for each MerryGoRound object
+ */
 glm::mat4 SuzanneMatrix1;
 glm::mat4 SuzanneMatrix2;
 glm::mat4 SuzanneMatrix3;
 glm::mat4 SuzanneMatrix4;
 
+/*
+ Matrices for the MerryGoRound pavillon
+ */
 glm::mat4 PavillonModelMatrix;
 glm::mat4 InitialTransformPavillon;
 
-glm::mat4 PVMMatrixGround;
-glm::mat4 PVMMatrixRoof;
-glm::mat4 PVMMatrixPillar;
-
-glm::mat4 PVMMatrixFloor;
-glm::mat4 PVMMatrixWall1;
-glm::mat4 PVMMatrixWall2;
-glm::mat4 PVMMatrixWall3;
-
-glm::mat4 PVMMatrixSuzanne1;
-glm::mat4 PVMMatrixSuzanne2;
-glm::mat4 PVMMatrixSuzanne3;
-glm::mat4 PVMMatrixSuzanne4;
-
-
-
-/* Transformation matrices for initial position */
-
-glm::mat4 TranslateOriginRoof;
-glm::mat4 TranslateDownRoof;
-glm::mat4 RotateXRoof;
-glm::mat4 RotateZRoof;
-glm::mat4 InitialTransformRoof;
-
-glm::mat4 TranslateOriginPillar;
-glm::mat4 TranslateDownPillar;
-glm::mat4 RotateXPillar;
-glm::mat4 RotateZPillar;
-glm::mat4 InitialTransformPillar;
-
-glm::mat4 TranslateOriginGround;
-glm::mat4 TranslateDownGround;
-glm::mat4 RotateXGround;
-glm::mat4 RotateZGround;
-glm::mat4 InitialTransformGround;
-
+/*
+ Transformation Matrices for the MerryGoRound objects
+ */
 glm::mat4 TranslateOriginBox1;
 glm::mat4 TranslateDownBox1;
 glm::mat4 RotateXBox1;
@@ -287,40 +271,11 @@ glm::mat4 RotateZBox4;
 glm::mat4 InitialTransformBox4;
 glm::mat4 UpDownTranslationBox4;
 
-/* Walls and Ground */
 
-glm::mat4 TranslateOriginWall1;
-glm::mat4 TranslateDownWall1;
-glm::mat4 RotateXWall1;
-glm::mat4 RotateYWall1;
-glm::mat4 RotateZWall1;
-glm::mat4 InitialTransformWall1;
-glm::mat4 UpDownTranslationWall1;
-
-glm::mat4 TranslateOriginWall2;
-glm::mat4 TranslateDownWall2;
-glm::mat4 RotateXWall2;
-glm::mat4 RotateZWall2;
-glm::mat4 RotateYWall2;
-glm::mat4 InitialTransformWall2;
-glm::mat4 UpDownTranslationWall2;
-
-glm::mat4 TranslateOriginWall3;
-glm::mat4 TranslateDownWall3;
-glm::mat4 RotateXWall3;
-glm::mat4 RotateZWall3;
-glm::mat4 RotateYWall3;
-glm::mat4 InitialTransformWall3;
-glm::mat4 UpDownTranslationWall3;
-
-glm::mat4 TranslateOriginFloor;
-glm::mat4 TranslateDownFloor;
-glm::mat4 RotateXFloor;
-glm::mat4 RotateZFloor;
-glm::mat4 InitialTransformFloor;
-glm::mat4 UpDownTranslationFloor;
-
-
+/*
+ Handles for the MerryGoRound objects animation
+ * UpDown movement
+ */
 const float BOX1_START_POSITION_Y = 1.0;
 const float BOX2_START_POSITION_Y = 1.0;
 const float BOX3_START_POSITION_Y = 1.0;
@@ -337,7 +292,9 @@ int BOX3_CURRENT_UPDOWN_DIRECTION = -1;
 int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
 
-
+/*
+ Handles for the Mouse Input
+ */
 int MOUSE_OLD_X_POS = 0;
 int MOUSE_OLD_Y_POS = 0;
 
@@ -345,14 +302,13 @@ int mouseDeltaX = 0;
 int mouseDeltaY = 0;
 
 
-/* ------------------------------------ */
+/*
+ Attributes of the MerryGoRound animation 
+ */
 float rotation_speed_factor = START_ROTATION_SPEED;
 int rotation_direction = 1;
-
 float updown_speed_factor = 1.0f;
-
 float zoom = 1.0;
-
 
 
 /* Transformation matrices for camera rotation */
@@ -378,10 +334,6 @@ enum {Model1=0, Model2=1};
 int model = Model1; 
 
 
-/* ------------------------------------ */
-
-
-
 /* variables for computing elapsed time since last render */
 int deltaTime = 0;
 int oldTimeSinceStart = 0;
@@ -389,170 +341,6 @@ int oldTimeSinceStart = 0;
 void computeDeltaTime();
 
 
-
-/*
-Vertex buffer for the ground box
-*/
-GLfloat ground_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
-    -GROUND_SIZE, -GROUND_HEIGHT,  GROUND_SIZE,
-     GROUND_SIZE, -GROUND_HEIGHT,  GROUND_SIZE,
-     GROUND_SIZE,  GROUND_HEIGHT,  GROUND_SIZE,
-    -GROUND_SIZE,  GROUND_HEIGHT,  GROUND_SIZE,
-    -GROUND_SIZE, -GROUND_HEIGHT, -GROUND_SIZE,
-     GROUND_SIZE, -GROUND_HEIGHT, -GROUND_SIZE,
-     GROUND_SIZE,  GROUND_HEIGHT, -GROUND_SIZE,
-    -GROUND_SIZE,  GROUND_HEIGHT, -GROUND_SIZE,
-};   
-
-GLfloat ground_color_buffer_data[] = { /* RGB color values for 8 vertices */
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-}; 
-
-GLushort ground_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
-    0, 1, 2,
-    2, 3, 0,
-    1, 5, 6,
-    6, 2, 1,
-    7, 6, 5,
-    5, 4, 7,
-    4, 0, 3,
-    3, 7, 4,
-    4, 5, 1,
-    1, 0, 4,
-    3, 2, 6,
-    6, 7, 3,
-};
-
-
-
-/*Horse Box*/
-
-GLfloat box1_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
-    -BOX1_SIZE, -BOX1_HEIGHT,  BOX1_SIZE,
-     BOX1_SIZE, -BOX1_HEIGHT,  BOX1_SIZE,
-     BOX1_SIZE,  BOX1_HEIGHT,  BOX1_SIZE,
-    -BOX1_SIZE,  BOX1_HEIGHT,  BOX1_SIZE,
-    -BOX1_SIZE, -BOX1_HEIGHT, -BOX1_SIZE,
-     BOX1_SIZE, -BOX1_HEIGHT, -BOX1_SIZE,
-     BOX1_SIZE,  BOX1_HEIGHT, -BOX1_SIZE,
-    -BOX1_SIZE,  BOX1_HEIGHT, -BOX1_SIZE,
-};   
-
-GLfloat box1_color_buffer_data[] = { /* RGB color values for 8 vertices */
-    0.0, 0.0, 0.5,
-    0.0, 0.0, 0.5,
-    0.0, 0.0, 0.5,
-    0.0, 0.0, 0.5,
-    0.0, 0.0, 0.5,
-    0.0, 0.0, 0.5,
-    0.0, 0.0, 0.5,
-    0.0, 0.0, 0.5,
-}; 
-
-GLushort box1_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
-    0, 1, 2,
-    2, 3, 0,
-    1, 5, 6,
-    6, 2, 1,
-    7, 6, 5,
-    5, 4, 7,
-    4, 0, 3,
-    3, 7, 4,
-    4, 5, 1,
-    1, 0, 4,
-    3, 2, 6,
-    6, 7, 3,
-};
-
-/*PILLAR*/
-
-GLfloat pillar_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
-    -PILLAR_SIZE, -PILLAR_HEIGHT,  PILLAR_SIZE,
-     PILLAR_SIZE, -PILLAR_HEIGHT,  PILLAR_SIZE,
-     PILLAR_SIZE,  PILLAR_HEIGHT,  PILLAR_SIZE,
-    -PILLAR_SIZE,  PILLAR_HEIGHT,  PILLAR_SIZE,
-    -PILLAR_SIZE, -PILLAR_HEIGHT, -PILLAR_SIZE,
-     PILLAR_SIZE, -PILLAR_HEIGHT, -PILLAR_SIZE,
-     PILLAR_SIZE,  PILLAR_HEIGHT, -PILLAR_SIZE,
-    -PILLAR_SIZE,  PILLAR_HEIGHT, -PILLAR_SIZE,
-};   
-
-GLfloat pillar_color_buffer_data[] = { /* RGB color values for 8 vertices */
-    0.5, 0.0, 0.0,
-    0.5, 0.0, 0.0,
-    0.5, 0.0, 0.0,
-    0.5, 0.0, 0.0,
-    0.5, 0.0, 0.0,
-    0.5, 0.0, 0.0,
-    0.5, 0.0, 0.0,
-    0.5, 0.0, 0.0,
-}; 
-
-GLushort pillar_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
-    0, 1, 2,
-    2, 3, 0,
-    1, 5, 6,
-    6, 2, 1,
-    7, 6, 5,
-    5, 4, 7,
-    4, 0, 3,
-    3, 7, 4,
-    4, 5, 1,
-    1, 0, 4,
-    3, 2, 6,
-    6, 7, 3,
-};
-
-
-/*
-Vertex buffer for the wall box
-*/
-GLfloat wall_vertex_buffer_data[] = { /* 8 cube vertices XYZ */
-    -WALL_SIZE, -WALL_HEIGHT,  WALL_SIZE,
-     WALL_SIZE, -WALL_HEIGHT,  WALL_SIZE,
-     WALL_SIZE,  WALL_HEIGHT,  WALL_SIZE,
-    -WALL_SIZE,  WALL_HEIGHT,  WALL_SIZE,
-    -WALL_SIZE, -WALL_HEIGHT, -WALL_SIZE,
-     WALL_SIZE, -WALL_HEIGHT, -WALL_SIZE,
-     WALL_SIZE,  WALL_HEIGHT, -WALL_SIZE,
-    -WALL_SIZE,  WALL_HEIGHT, -WALL_SIZE,
-};   
-
-GLfloat wall_color_buffer_data[] = { /* RGB color values for 8 vertices */
-    0.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-}; 
-
-GLushort wall_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
-    0, 1, 2,
-    2, 3, 0,
-    1, 5, 6,
-    6, 2, 1,
-    7, 6, 5,
-    5, 4, 7,
-    4, 0, 3,
-    3, 7, 4,
-    4, 5, 1,
-    1, 0, 4,
-    3, 2, 6,
-    6, 7, 3,
-};
-
-
-/*----------------------------------------------------------------*/
 
 
 /******************************************************************
@@ -567,7 +355,7 @@ GLushort wall_index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
 *******************************************************************/
 
 
-void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::mat4 ModelMatrix){
+void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, glm::mat4 ModelMatrix){
     
     glm::mat4 mView = ViewMatrix;
     glm::mat4 mProjection = ProjectionMatrix;
@@ -576,24 +364,11 @@ void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::
     glEnableVertexAttribArray(vPosition);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
+ 
     
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);   
-    
-    // 3rd attribute buffer : normals
-		glEnableVertexAttribArray(vNormals);
-		glBindBuffer(GL_ARRAY_BUFFER, NBO);
-		glVertexAttribPointer(
-                        vNormals,                                // attribute
-			3,                                // size
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-
+    glEnableVertexAttribArray(vNormals);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO);
+    glVertexAttribPointer(vNormals,3,GL_FLOAT,GL_FALSE,0,(void*)0);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     
@@ -609,81 +384,22 @@ void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::
     /*
      Bind Light sources
      */
-    glUniform3f(LightSource1ID, LightSource1Position.x, LightSource1Position.y, LightSource1Position.z);
-    glUniform3f(LightSource2ID, LightSource2Position.x, LightSource2Position.y, LightSource2Position.z);
-    glUniform3f(LightSource3ID, LightSource3Position.x, LightSource3Position.y, LightSource3Position.z);
-    glUniform3f(LightSource4ID, LightSource4Position.x, LightSource4Position.y, LightSource4Position.z);
-
-    /*	-------------------------------------------------------------------------- */
-    /* Set state to only draw wireframe (no lighting used, yet) */
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+    
+    glUniform3fv(LightSourcesID, numberLightSources, &lightSources[0] );
+    glUniform3fv(LightColorsID, numberLightSources, &lightColors[0] );
+    glUniform1fv(LightIntensitiesID, numberLightSources, &lightIntensities[0] );
+    
     /* Issue draw command, using indexed triangle list */
     glDrawElements(GL_TRIANGLES, size/sizeof(GLuint), GL_UNSIGNED_INT, 0);
-    //glDrawArrays(GL_TRIANGLES, 0, size/sizeof(GLuint));
 
-    /* Issue draw command, using indexed triangle list */
-    //glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     /*	--------------------------------------------------------------------------- */
     
     /* Disable attributes */
     glDisableVertexAttribArray(vPosition);
-    glDisableVertexAttribArray(vColor);   
     glDisableVertexAttribArray(vNormals);   
 
 }
 
-
-void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 ModelMatrix){
-    
-    glm::mat4 PVM = ProjectionMatrix * ViewMatrix * ModelMatrix;
-
-    glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);   
- 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    
-    GLint size; 
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
- /* Associate program with shader matrices */
-    glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(PVM));  
-    glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
-    glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
-
-    
-        /*
-     Bind Light sources
-     */
-    glUniform3f(LightSource1ID, LightSource1Position.x, LightSource1Position.y, LightSource1Position.z);
-    glUniform3f(LightSource2ID, LightSource2Position.x, LightSource2Position.y, LightSource2Position.z);
-    glUniform3f(LightSource3ID, LightSource3Position.x, LightSource3Position.y, LightSource3Position.z);
-    glUniform3f(LightSource4ID, LightSource4Position.x, LightSource4Position.y, LightSource4Position.z);
-
-    
-    /*	-------------------------------------------------------------------------- */
-    /* Set state to only draw wireframe (no lighting used, yet) */
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    /* Issue draw command, using indexed triangle list */
-    glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-   //glDrawArrays(GL_TRIANGLES, 0, size/sizeof(GLuint));
-
-    /* Issue draw command, using indexed triangle list */
-    //glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-    /*	--------------------------------------------------------------------------- */
-    
-    /* Disable attributes */
-    glDisableVertexAttribArray(vPosition);
-    glDisableVertexAttribArray(vColor);   
-
-}
 
 /*
  Computes the time elapsed since last Display()
@@ -700,30 +416,16 @@ void Display()
 {
     /* Clear window; color specified in 'Initialize()' */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    /*DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixGround);
-    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
-    DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
-    */
+
     /* Walls and Floor*/
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixFloor);
-    //DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall1);
-    //DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall2);
-    //DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall3);
+    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO, ModelMatrixFloor);
 
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix1);
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix2);
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix3);
-    DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix4);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix1);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix2);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix3);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix4);
     
-    DrawObjectWithNormals(PAVILLON_VBO, HORSEBOX_CBO, PAVILLON_IBO,PAVILLON_NBO, PavillonModelMatrix);
-
-/*
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix1);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix2);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix3);
-    DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix4);
-*/
+    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PavillonModelMatrix);
 
     /* Swap between front and back buffer */ 
     glutSwapBuffers();
@@ -767,11 +469,8 @@ void Mouse(int button, int state, int x, int y)
 		zoom = 1.0;
 		break;
 	}
-	// anim = GL_TRUE;
     }
-    
-    
-    
+      
     MOUSE_OLD_X_POS = x;
     MOUSE_OLD_Y_POS = y;
 }
@@ -796,6 +495,40 @@ void MouseMove(int x, int y)
     MOUSE_OLD_Y_POS = y;
 }
 
+/************************************************
+ * Helper functions to change the light attributes
+ * to user input
+ ***********************************************/
+
+void increaseLightIntensity(){
+    lightIntensities[0] += 10;
+    lightIntensities[0] = glm::clamp(lightIntensities[0], 0.f, 500.f);
+}
+
+void decreaseLightIntensity(){
+    lightIntensities[0] -= 10;
+    lightIntensities[0] = glm::clamp(lightIntensities[0], 0.0f, 500.0f);
+}
+
+void increaseLightColor(){
+    srand (time(0));  
+    lightColors[0] += ((double) rand() / (RAND_MAX));
+    lightColors[1] += ((double) rand() / (RAND_MAX));
+    lightColors[2] += ((double) rand() / (RAND_MAX)); 
+    lightColors[0] = glm::clamp(lightColors[0], 0.f, 1.f);
+    lightColors[1] = glm::clamp(lightColors[1], 0.f, 1.f);
+    lightColors[2] = glm::clamp(lightColors[2], 0.f, 1.f);
+}
+
+void decreaseLightColor(){
+    srand (time(0));  
+    lightColors[0] -= ((double) rand() / (RAND_MAX));
+    lightColors[1] -= ((double) rand() / (RAND_MAX));
+    lightColors[2] -= ((double) rand() / (RAND_MAX)); 
+    lightColors[0] = glm::clamp(lightColors[0], 0.f, 1.f);
+    lightColors[1] = glm::clamp(lightColors[1], 0.f, 1.f);
+    lightColors[2] = glm::clamp(lightColors[2], 0.f, 1.f);
+}
 
 /******************************************************************
 *
@@ -846,17 +579,37 @@ void Keyboard(unsigned char key, int x, int y)
                 rotation_direction = -1;
             }
 	    break;
+            
+        case 'p':
+            animMerryGoRound = !animMerryGoRound;
+            break;
+            
+        case 'i':
+            increaseLightIntensity();
+            break;
+        
+        case 'k':
+            decreaseLightIntensity();
+            break;
+            
+        case 'u':
+            increaseLightColor();
+            break;
+            
+        case 'j':
+            decreaseLightColor();
+            break;
 	/* --------------------------------------- */
 	// keys to manipulate the camera
 	/* Activate camera mode fixed or free */
 	case '1': 
 		cameraMode = CAMERA_FIXED_MOVE;
-		anim = GL_TRUE;
+		animCamera = GL_TRUE;
 		break;
 
 	case '2':
 		cameraMode = CAMERA_FREE_MOVE;
-		anim = GL_FALSE;
+		animCamera = GL_FALSE;
 		break;
 
 	/* Reset initial rotation of object */	  
@@ -905,6 +658,9 @@ void KeyboardUp(unsigned char key, int x, int y)
 	    break;
     }
 }
+
+
+
 
 
 
@@ -968,7 +724,7 @@ void OnIdle()
     // Camera Fixed Move active
     else {
      
-    if(anim) {
+    if(animCamera) {
         
         float translationCameraX = 0.0f, translationCameraY = 0.0f, translationCameraZ = 0.0f;
         TranslationMatrixCamera = glm::mat4(1.0f);
@@ -1002,86 +758,70 @@ void OnIdle()
     }
     
     
-	/* SetUp Rotation matrices */
-    float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI);
-    
-    angle *= rotation_speed_factor;
-    angle *= rotation_direction;
-   
+    if (animMerryGoRound){
+            /* SetUp Rotation matrices */
+        float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI);
 
-    glm::mat4 RotationMatrixAnimGround;
-    glm::mat4 RotationMatrixAnimPillar;
-    glm::mat4 RotationMatrixAnimRoof;
-    glm::mat4 RotationMatrixAnimBox1;
-    glm::mat4 RotationMatrixAnimBox2;
-    glm::mat4 RotationMatrixAnimBox3;
-    glm::mat4 RotationMatrixAnimBox4;
+        angle *= rotation_speed_factor;
+        angle *= rotation_direction;
 
 
-    
-    /* Time dependent rotation */
-    RotationMatrixAnimGround = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
-    RotationMatrixAnimRoof = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
-    RotationMatrixAnimPillar = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
-    RotationMatrixAnimBox1 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-    RotationMatrixAnimBox2 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-    RotationMatrixAnimBox3 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-    RotationMatrixAnimBox4 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));    
-
-	/* compute merry-go-round horse translation */
-    BOX1_CURRENT_UPDOWN_DIRECTION = (BOX1_CURRENT_POSITION_Y > 2 ? -1 : (BOX1_CURRENT_POSITION_Y < 0 ? 1 : BOX1_CURRENT_UPDOWN_DIRECTION));
-    BOX2_CURRENT_UPDOWN_DIRECTION = (BOX2_CURRENT_POSITION_Y > 2 ? -1 : (BOX2_CURRENT_POSITION_Y < 0 ? 1 : BOX2_CURRENT_UPDOWN_DIRECTION));
-    BOX3_CURRENT_UPDOWN_DIRECTION = (BOX3_CURRENT_POSITION_Y > 2 ? -1 : (BOX3_CURRENT_POSITION_Y < 0 ? 1 : BOX3_CURRENT_UPDOWN_DIRECTION));
-    BOX4_CURRENT_UPDOWN_DIRECTION = (BOX4_CURRENT_POSITION_Y > 2 ? -1 : (BOX4_CURRENT_POSITION_Y < 0 ? 1 : BOX4_CURRENT_UPDOWN_DIRECTION));
-
-    float updown = 3.f * deltaTime/1000;
-    updown *= updown_speed_factor;
-    
-    BOX1_CURRENT_POSITION_Y += updown * BOX1_CURRENT_UPDOWN_DIRECTION;
-    BOX2_CURRENT_POSITION_Y += updown * BOX2_CURRENT_UPDOWN_DIRECTION;
-    BOX3_CURRENT_POSITION_Y += updown * BOX3_CURRENT_UPDOWN_DIRECTION;
-    BOX4_CURRENT_POSITION_Y += updown * BOX4_CURRENT_UPDOWN_DIRECTION;
-    
-    UpDownTranslationBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX1_CURRENT_POSITION_Y, 0));
-    UpDownTranslationBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX2_CURRENT_POSITION_Y, 0));
-    UpDownTranslationBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX3_CURRENT_POSITION_Y, 0));
-    UpDownTranslationBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX4_CURRENT_POSITION_Y, 0));
-
-    
-
-    ModelMatrixGround = TranslateDownGround * RotationMatrixAnimGround * InitialTransformGround;
-    ModelMatrixRoof = TranslateDownRoof * RotationMatrixAnimRoof * InitialTransformRoof;
-    ModelMatrixPillar = TranslateDownPillar * RotationMatrixAnimPillar * InitialTransformPillar;
-    PavillonModelMatrix = RotationMatrixAnimGround * InitialTransformPavillon;
-
-    /* Apply model rotation; finally move cube down */    
-    SuzanneMatrix1 = TranslateDownBox1 * UpDownTranslationBox1 * RotationMatrixAnimBox1 * InitialTransformBox1;
-    SuzanneMatrix2 = TranslateDownBox2 * UpDownTranslationBox2 * RotationMatrixAnimBox2 * InitialTransformBox2;
-    SuzanneMatrix3 = TranslateDownBox3 * UpDownTranslationBox3 * RotationMatrixAnimBox3 * InitialTransformBox3;
-    SuzanneMatrix4 = TranslateDownBox4 * UpDownTranslationBox4 * RotationMatrixAnimBox4 * InitialTransformBox4;
-
-    
-    
-     /* Set up single transformation matrix for complete transformation 
-       from model to screen space */
-    PVMMatrixGround = ProjectionMatrix * ViewMatrix * ModelMatrixGround;
-    PVMMatrixRoof = ProjectionMatrix * ViewMatrix * ModelMatrixRoof;
-    PVMMatrixPillar = ProjectionMatrix * ViewMatrix * ModelMatrixPillar;
-    
-        
-    PVMMatrixFloor = ProjectionMatrix * ViewMatrix * ModelMatrixFloor;
-    PVMMatrixWall1 = ProjectionMatrix * ViewMatrix * ModelMatrixWall1;
-    PVMMatrixWall2 = ProjectionMatrix * ViewMatrix * ModelMatrixWall2;
-    PVMMatrixWall3 = ProjectionMatrix * ViewMatrix * ModelMatrixWall3;
-    
-    
-    PVMMatrixSuzanne1 = ProjectionMatrix * ViewMatrix * SuzanneMatrix1;
-    PVMMatrixSuzanne2 = ProjectionMatrix * ViewMatrix * SuzanneMatrix2;
-    PVMMatrixSuzanne3 = ProjectionMatrix * ViewMatrix * SuzanneMatrix3;
-    PVMMatrixSuzanne4 = ProjectionMatrix * ViewMatrix * SuzanneMatrix4;
+        glm::mat4 RotationMatrixAnimPavillon;
+        glm::mat4 RotationMatrixAnimBox1;
+        glm::mat4 RotationMatrixAnimBox2;
+        glm::mat4 RotationMatrixAnimBox3;
+        glm::mat4 RotationMatrixAnimBox4;
 
 
-    
+
+        /* Time dependent rotation */
+        RotationMatrixAnimPavillon = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
+        RotationMatrixAnimBox1 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        RotationMatrixAnimBox2 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        RotationMatrixAnimBox3 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        RotationMatrixAnimBox4 = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));    
+
+        /*Rotation of the light sources*/
+        float angleLight = fmod(0.001 * deltaTime, 360.0);
+        glm::mat4 RotationMatrixAnimLight = glm::rotate(glm::mat4(1.0f), angleLight, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        for (int i = 0; i < numberLightSources * 3; i+=3){
+            glm::vec4 lightVec = glm::vec4(lightSources[i], lightSources[i+1], lightSources[i+2], 1.0f);
+            lightVec = lightVec * RotationMatrixAnimLight;
+            lightSources[i] = lightVec.x;
+            lightSources[i+1] = lightVec.y;
+            lightSources[i+2] = lightVec.z;
+        }
+
+
+            /* compute merry-go-round horse translation */
+        BOX1_CURRENT_UPDOWN_DIRECTION = (BOX1_CURRENT_POSITION_Y > 2 ? -1 : (BOX1_CURRENT_POSITION_Y < 0 ? 1 : BOX1_CURRENT_UPDOWN_DIRECTION));
+        BOX2_CURRENT_UPDOWN_DIRECTION = (BOX2_CURRENT_POSITION_Y > 2 ? -1 : (BOX2_CURRENT_POSITION_Y < 0 ? 1 : BOX2_CURRENT_UPDOWN_DIRECTION));
+        BOX3_CURRENT_UPDOWN_DIRECTION = (BOX3_CURRENT_POSITION_Y > 2 ? -1 : (BOX3_CURRENT_POSITION_Y < 0 ? 1 : BOX3_CURRENT_UPDOWN_DIRECTION));
+        BOX4_CURRENT_UPDOWN_DIRECTION = (BOX4_CURRENT_POSITION_Y > 2 ? -1 : (BOX4_CURRENT_POSITION_Y < 0 ? 1 : BOX4_CURRENT_UPDOWN_DIRECTION));
+
+        float updown = 3.f * deltaTime/1000;
+        updown *= updown_speed_factor;
+
+        BOX1_CURRENT_POSITION_Y += updown * BOX1_CURRENT_UPDOWN_DIRECTION;
+        BOX2_CURRENT_POSITION_Y += updown * BOX2_CURRENT_UPDOWN_DIRECTION;
+        BOX3_CURRENT_POSITION_Y += updown * BOX3_CURRENT_UPDOWN_DIRECTION;
+        BOX4_CURRENT_POSITION_Y += updown * BOX4_CURRENT_UPDOWN_DIRECTION;
+
+        UpDownTranslationBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX1_CURRENT_POSITION_Y, 0));
+        UpDownTranslationBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX2_CURRENT_POSITION_Y, 0));
+        UpDownTranslationBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX3_CURRENT_POSITION_Y, 0));
+        UpDownTranslationBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(0, BOX4_CURRENT_POSITION_Y, 0));
+
+        PavillonModelMatrix = RotationMatrixAnimPavillon * InitialTransformPavillon;
+        ModelMatrixFloor = InitialTransformFloor;
+        /* Apply model rotation; finally move cube down */    
+        SuzanneMatrix1 = TranslateDownBox1 * UpDownTranslationBox1 * RotationMatrixAnimBox1 * InitialTransformBox1;
+        SuzanneMatrix2 = TranslateDownBox2 * UpDownTranslationBox2 * RotationMatrixAnimBox2 * InitialTransformBox2;
+        SuzanneMatrix3 = TranslateDownBox3 * UpDownTranslationBox3 * RotationMatrixAnimBox3 * InitialTransformBox3;
+        SuzanneMatrix4 = TranslateDownBox4 * UpDownTranslationBox4 * RotationMatrixAnimBox4 * InitialTransformBox4;
+
+    }
     /* ---------------------------------------------------------------------------- */
 
     /* Request redrawing forof window content */  
@@ -1101,68 +841,6 @@ void OnIdle()
 
 void SetupDataBuffers()
 {
-    
-  
-    /*Ground Shape */
-    glGenBuffers(1, &GROUND_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, GROUND_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(ground_vertex_buffer_data), ground_vertex_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &GROUND_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GROUND_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ground_index_buffer_data), ground_index_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &GROUND_CBO);
-    glBindBuffer(GL_ARRAY_BUFFER, GROUND_CBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(ground_color_buffer_data), ground_color_buffer_data, GL_STATIC_DRAW);
-    
-
-    /* Horse shape*/
-    /* */
-    glGenBuffers(1, &HORSEBOX_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, HORSEBOX_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(box1_vertex_buffer_data), box1_vertex_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &HORSEBOX_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, HORSEBOX_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(box1_index_buffer_data), box1_index_buffer_data, GL_STATIC_DRAW);
-    /* */
-    glGenBuffers(1, &HORSEBOX_CBO);
-    glBindBuffer(GL_ARRAY_BUFFER, HORSEBOX_CBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(box1_color_buffer_data), box1_color_buffer_data, GL_STATIC_DRAW);
-      
-    
-    /* Pillar shape*/
-    glGenBuffers(1, &PILLAR_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, PILLAR_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(pillar_vertex_buffer_data), pillar_vertex_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &PILLAR_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, PILLAR_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(pillar_index_buffer_data), pillar_index_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &PILLAR_CBO);
-    glBindBuffer(GL_ARRAY_BUFFER, PILLAR_CBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(pillar_color_buffer_data), pillar_color_buffer_data, GL_STATIC_DRAW);
-    
-    
-    /* WALL shape*/
-    glGenBuffers(1, &WALL_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, WALL_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(wall_vertex_buffer_data), wall_vertex_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &WALL_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, WALL_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(wall_index_buffer_data), wall_index_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &WALL_CBO);
-    glBindBuffer(GL_ARRAY_BUFFER, WALL_CBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(wall_color_buffer_data), wall_color_buffer_data, GL_STATIC_DRAW);
-    
-    
- /* ------------------------------------------------------------    -------------*/
- /*         Added for exercise 2                                             */
-   
     glGenBuffers(1, &SUZANNE_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_VBO);
     glBufferData(GL_ARRAY_BUFFER, vertex_buffer_suzanne.size()*sizeof(GLfloat), &vertex_buffer_suzanne[0], GL_STATIC_DRAW);
@@ -1177,7 +855,7 @@ void SetupDataBuffers()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_suzanne.size()*sizeof(GLuint), &index_buffer_suzanne[0], GL_STATIC_DRAW);
  
     
-       glGenBuffers(1, &PAVILLON_VBO);
+    glGenBuffers(1, &PAVILLON_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, PAVILLON_VBO);
     glBufferData(GL_ARRAY_BUFFER, vertex_buffer_pavillon.size()*sizeof(GLfloat), &vertex_buffer_pavillon[0], GL_STATIC_DRAW);
     
@@ -1190,8 +868,19 @@ void SetupDataBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, PAVILLON_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_pavillon.size()*sizeof(GLuint), &index_buffer_pavillon[0], GL_STATIC_DRAW);
  
- /* -------------------------------------------------------------------------*/   
     
+    glGenBuffers(1, &FLOOR_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, FLOOR_VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertex_buffer_floor.size()*sizeof(GLfloat), &vertex_buffer_floor[0], GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &FLOOR_NBO);
+    glBindBuffer(GL_ARRAY_BUFFER, FLOOR_NBO);
+    glBufferData(GL_ARRAY_BUFFER, normal_buffer_floor.size()*sizeof(GLfloat), &normal_buffer_floor[0], GL_STATIC_DRAW);
+
+    glGenBuffers(1, &FLOOR_IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, FLOOR_IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_floor.size()*sizeof(GLuint), &index_buffer_floor[0], GL_STATIC_DRAW);
+     
 }
 
 
@@ -1300,17 +989,9 @@ void CreateShaderProgram()
     PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
     ViewMatrixID = glGetUniformLocation(ShaderProgram, "V");
     ModelMatrixID = glGetUniformLocation(ShaderProgram, "M");
-    LightSource1ID = glGetUniformLocation(ShaderProgram, "Light1Position_worldspace");
-    LightSource2ID = glGetUniformLocation(ShaderProgram, "Light2Position_worldspace");
-    LightSource3ID = glGetUniformLocation(ShaderProgram, "Light3Position_worldspace");
-    LightSource4ID = glGetUniformLocation(ShaderProgram, "Light4Position_worldspace");
-    
-
-    if (PVMMatrixID == -1) 
-    {
-        fprintf(stderr, "Could not bind uniform ProjectionViewModelMatrix\n");
-        exit(-1);
-    }
+    LightSourcesID = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
+    LightColorsID = glGetUniformLocation(ShaderProgram, "LightColor");
+    LightIntensitiesID = glGetUniformLocation(ShaderProgram, "LightIntensity");
 }
 
 /*
@@ -1339,14 +1020,15 @@ void setupIntelMesaConfiguration(){
 
 /******************************************************************
 *
-* Initialize
+* LoadMesh
 *
-* This function is called to initialize rendering elements, setup
-* vertex buffer objects, and to setup the vertex and fragment shader
+ * Loads the meshes of the MerryGoRound Object, the Pavillon and the Ground
 *
 *******************************************************************/
+
+
 void LoadMesh(){
-    std::string inputfileSuzanne = "models/teapot.obj";
+    std::string inputfileSuzanne = "models/ufo.obj";
     std::vector<tinyobj::shape_t> shapesSuzanne;
     std::vector<tinyobj::material_t> materialsSuzanne;
     
@@ -1354,26 +1036,27 @@ void LoadMesh(){
     std::vector<tinyobj::shape_t> shapesPavillon;
     std::vector<tinyobj::material_t> materialsPavillon;
     
-    fprintf(stderr, "Loading mesh..");
-     
+    std::string inputfileFloor = "models/ground_2.obj";
+    std::vector<tinyobj::shape_t> shapesFloor;
+    std::vector<tinyobj::material_t> materialsFloor;
+    
+         
     std::string err = tinyobj::LoadObj(shapesSuzanne, materialsSuzanne, inputfileSuzanne.c_str());
 
     if (!err.empty()) {
         fprintf(stderr, "Error loading obj File Suzanne!");
       exit(1);
-    }else{
-     fprintf(stderr, "Mesh loaded!");
     }
-    //fprintf(stdout, "Number of shapes: %d\n",shapes.size());
     
-    int numVertices = shapesSuzanne[0].mesh.positions.size();
-    int numIndices = shapesSuzanne[0].mesh.indices.size();
-    int numNormals = shapesSuzanne[0].mesh.normals.size();
-    
-    fprintf(stderr, "Number of vertics Suzanne: %d \n", numVertices);
-    fprintf(stderr, "Number of indices Suzanne: %d\n", numIndices);
-    fprintf(stderr, "Number of normalsSuzanne : %d\n",numNormals);
+    if (MESH_DEBUG){
+        int numVertices = shapesSuzanne[0].mesh.positions.size();
+        int numIndices = shapesSuzanne[0].mesh.indices.size();
+        int numNormals = shapesSuzanne[0].mesh.normals.size();
 
+        fprintf(stderr, "Number of vertics Suzanne: %d \n", numVertices);
+        fprintf(stderr, "Number of indices Suzanne: %d\n", numIndices);
+        fprintf(stderr, "Number of normalsSuzanne : %d\n",numNormals);
+    }
     vertex_buffer_suzanne = shapesSuzanne[0].mesh.positions;
     index_buffer_suzanne = shapesSuzanne[0].mesh.indices;
     normal_buffer_suzanne = shapesSuzanne[0].mesh.normals;
@@ -1387,81 +1070,62 @@ void LoadMesh(){
     if (!err.empty()) {
         fprintf(stderr, "Error loading obj File Pavillon!");
       exit(1);
-    }else{
-     fprintf(stderr, "Mesh loaded!");
     }
-    //fprintf(stdout, "Number of shapes: %d\n",shapes.size());
     
-    numVertices = shapesPavillon[0].mesh.positions.size();
-    numIndices = shapesPavillon[0].mesh.indices.size();
-    numNormals = shapesPavillon[0].mesh.normals.size();
-    
-    fprintf(stderr, "Number of vertics Pavillon: %d \n", numVertices);
-    fprintf(stderr, "Number of indices Pavillon: %d\n", numIndices);
-    fprintf(stderr, "Number of normals Pavillon : %d\n",numNormals);
+    if (MESH_DEBUG){
+        int numVertices = shapesPavillon[0].mesh.positions.size();
+        int numIndices = shapesPavillon[0].mesh.indices.size();
+        int numNormals = shapesPavillon[0].mesh.normals.size();
 
+        fprintf(stderr, "Number of vertics Pavillon: %d \n", numVertices);
+        fprintf(stderr, "Number of indices Pavillon: %d\n", numIndices);
+        fprintf(stderr, "Number of normals Pavillon : %d\n",numNormals);
+    }
     vertex_buffer_pavillon = shapesPavillon[0].mesh.positions;
     index_buffer_pavillon = shapesPavillon[0].mesh.indices;
     normal_buffer_pavillon = shapesPavillon[0].mesh.normals;
 
+    /*
+     Load Ground
+     */
+    err = tinyobj::LoadObj(shapesFloor, materialsFloor, inputfileFloor.c_str());
+
+    if (!err.empty()) {
+        fprintf(stderr, "Error loading obj File Pavillon!");
+      exit(1);
+    }
+    
+    if (MESH_DEBUG){
+        int numVertices = shapesFloor[0].mesh.positions.size();
+        int numIndices = shapesFloor[0].mesh.indices.size();
+        int numNormals = shapesFloor[0].mesh.normals.size();
+
+        fprintf(stderr, "Number of vertics Floor: %d \n", numVertices);
+        fprintf(stderr, "Number of indices Floor: %d\n", numIndices);
+        fprintf(stderr, "Number of normals Floor : %d\n",numNormals);
+    }
+    vertex_buffer_floor = shapesFloor[0].mesh.positions;
+    index_buffer_floor = shapesFloor[0].mesh.indices;
+    normal_buffer_floor = shapesFloor[0].mesh.normals;
+
 }
+
+
+/******************************************************************
+*
+* Initialize
+*
+* This function is called to initialize rendering elements, setup
+* vertex buffer objects, and to setup the vertex and fragment shader
+*
+*******************************************************************/
 
 
 void Initialize(void)
 {   
-    //int i;
-    //int success;
-    
+    // load the meshes
     LoadMesh();
     
-    
-    /* Load suzanne */
-    /*char* filename_suzanne = (char*) "models/Tiger.obj";
-    success = parse_obj_scene(&suzanne_data, filename_suzanne);
-    if(!success)
-        printf("Could not load file 'suzanne'. Exiting. \n");
-    */
-    
-   
-
-            
-            
-    /*  Copy mesh data from structs into appropriate arrays */ 
-   /*int vert = suzanne_data.vertex_count;
-    int indx = suzanne_data.face_count;
-    int normals = suzanne_data.vertex_normal_count;
-    
-    fprintf(stderr, "Number Normals: %d", normals);
-    
-    vertex_buffer_suzanne = (GLfloat*) calloc (vert*3, sizeof(GLfloat));
-    index_buffer_suzanne = (GLuint*) calloc (indx*3, sizeof(GLuint));
-    normal_buffer_suzanne = (GLfloat*) calloc (normals*3, sizeof(GLfloat));
-*/
-  
-    /* Vertices */
-    /*for(i=0; i<vert; i++)
-    {
-        vertex_buffer_suzanne[i*3] = (GLfloat)(suzanne_data.vertex_list[i])->e[0];
-	vertex_buffer_suzanne[i*3+1] = (GLfloat)(suzanne_data.vertex_list[i])->e[1];
-	vertex_buffer_suzanne[i*3+2] = (GLfloat)(suzanne_data.vertex_list[i])->e[2];
-    }*/
-
-    /* Indices */
-    /*for(i=0; i<indx; i++)
-    {
-	index_buffer_suzanne[i*3] = (GLuint)(suzanne_data.face_list[i])->vertex_index[0];
-	index_buffer_suzanne[i*3+1] = (GLuint)(suzanne_data.face_list[i])->vertex_index[1];
-	index_buffer_suzanne[i*3+2] = (GLuint)(suzanne_data.face_list[i])->vertex_index[2];
-    }*/
-    
-     /* Normals */
-   /* for(i=0; i<normals; i++)
-    {
-	normal_buffer_suzanne[i*3] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[0];
-	normal_buffer_suzanne[i*3+1] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[1];
-	normal_buffer_suzanne[i*3+2] = (GLuint)(suzanne_data.vertex_normal_list[i])->e[2];
-    }*/
-    /* Set background (clear) color to white */ 
     glClearColor(0.0f, 0.0f, 0.3f, 0.0);
 
     /* Enable depth testing */
@@ -1478,16 +1142,7 @@ void Initialize(void)
     CreateShaderProgram();
 
     /* Initialize matrices */
-    
-
-    ModelMatrixGround = glm::mat4(1.0f);
-    ModelMatrixPillar = glm::mat4(1.0f);
-    ModelMatrixRoof = glm::mat4(1.0f);
    
-    ModelMatrixFloor = glm::mat4(1.0f);
-    ModelMatrixWall1 = glm::mat4(1.0f);
-    ModelMatrixWall2 = glm::mat4(1.0f);
-    ModelMatrixWall3 = glm::mat4(1.0f);
     
     TranslationMatrixCamera = glm::mat4(1.0f);
     TranslationMatrixCameraX = glm::mat4(1.0f);
@@ -1504,14 +1159,21 @@ void Initialize(void)
     SuzanneMatrix3 = glm::mat4(1.0f);
     SuzanneMatrix4 = glm::mat4(1.0f);
     
+    ModelMatrixFloor = glm::mat4(1.0f);
+    
     PavillonModelMatrix = glm::mat4(1.0f);
     InitialTransformPavillon = glm::mat4(1.0f);
     
-    glm::mat4 scalePavillon = glm::scale(glm::mat4(1.0f), glm::vec3(0.7f));
+    glm::mat4 scalePavillon = glm::scale(glm::mat4(1.0f), glm::vec3(1.1f));
     glm::mat4 translatePavillon = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     
     InitialTransformPavillon = scalePavillon * translatePavillon;
-              
+    glm::mat4 InitialScaleFloor = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+    glm::mat4 InitialTranslateFloor = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    InitialTransformFloor = InitialScaleFloor * InitialTranslateFloor;
+
+    
+    
     BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
     BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
     BOX3_CURRENT_POSITION_Y = BOX3_START_POSITION_Y;
@@ -1529,66 +1191,18 @@ void Initialize(void)
     ViewMatrix = glm::lookAt(glm::vec3(0,0,-10),    /* Eye vector */
 			     glm::vec3(0,0,0),     /* Viewing center */
 			     glm::vec3(0,1,0) );  /* Up vector */
-
-
-    /* Translate and rotate ground onto tip */
-    TranslateOriginGround = glm::translate(glm::mat4(1.0f), glm::vec3(0,0,0));	
-    TranslateOriginRoof = glm::translate(glm::mat4(1.0f), glm::vec3(0,4.2,0));
-    TranslateOriginPillar = glm::translate(glm::mat4(1.0f), glm::vec3(0,2,0));
     
-    /* Walls and Floor*/
-    //floor
-    int floor_y = -3;
-    TranslateOriginFloor = glm::translate(glm::mat4(1.0f), glm::vec3(0,floor_y,0));
-    
-    // left wall
-    TranslateOriginWall1 = glm::translate(glm::mat4(1.0f), glm::vec3(-floor_y, -WALL_SIZE, 0));
-    RotateZWall1 = glm::rotate(glm::mat4(1.0f), (float)(90.0f*(2 * M_PI / 360)), glm::vec3(0.0f, 0.0f, 1.0f));
-         
-    // right wall
-    TranslateOriginWall2 = glm::translate(glm::mat4(1.0f), glm::vec3(-floor_y, WALL_SIZE, 0));
-    RotateZWall2 = glm::rotate(glm::mat4(1.0f), (float)(90.0f*(2 * M_PI / 360)), glm::vec3(0.0f, 0.0f, 1.0f));
-    
-    // back wall
-    TranslateOriginWall3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -WALL_SIZE, floor_y));
-    RotateXWall3 = glm::rotate(glm::mat4(1.0f), (float)(90.0f*(2 * M_PI / 360)), glm::vec3(1.0f, 0.0f, 0.0f));
-        
     
     TranslateOriginBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(2, BOX1_START_POSITION_Y, 2));
     TranslateOriginBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(-2, BOX2_START_POSITION_Y, -2));
     TranslateOriginBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(-2, BOX3_START_POSITION_Y, 2));
     TranslateOriginBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(2, BOX4_START_POSITION_Y, -2));
 
-   
-    /* Translate down */
-    TranslateDownGround = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
-    TranslateDownPillar = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
-    TranslateDownRoof = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
     TranslateDownBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
     TranslateDownBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
     TranslateDownBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
     TranslateDownBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
-
-   
-
-    InitialTransformGround = RotateZGround * RotateXGround * TranslateOriginGround;
-    InitialTransformPillar = RotateZPillar * RotateXPillar * TranslateOriginPillar;
-    InitialTransformRoof = RotateZRoof * RotateXRoof * TranslateOriginRoof;
-
-    
-    ModelMatrixFloor =  RotateZFloor * RotateXFloor  * InitialTransformFloor * TranslateOriginFloor;
-    ModelMatrixWall1 = RotateZWall1 * RotateXWall1 * InitialTransformWall1 * TranslateOriginWall1;
-    ModelMatrixWall2 = RotateZWall2 * RotateXWall2 * InitialTransformWall2 * TranslateOriginWall2;
-    ModelMatrixWall3 = RotateZWall3 * RotateXWall3 * InitialTransformWall3* TranslateOriginWall3 ;
-
-        
-    PVMMatrixFloor = ProjectionMatrix * ViewMatrix * ModelMatrixFloor;
-    PVMMatrixWall1 = ProjectionMatrix * ViewMatrix * ModelMatrixWall1;
-    PVMMatrixWall2 = ProjectionMatrix * ViewMatrix * ModelMatrixWall2;
-    PVMMatrixWall3 = ProjectionMatrix * ViewMatrix * ModelMatrixWall3;
-    
-    
-    
+      
     /* Walls and Floor*/
     InitialTransformBox1 = RotateZBox1 * RotateXBox1 * TranslateOriginBox1;
     InitialTransformBox2 = RotateZBox2 * RotateXBox2 * TranslateOriginBox2;
@@ -1620,8 +1234,7 @@ int main(int argc, char** argv)
     /* Initialize GLUT; set double buffered window and RGBA color model */
     glutInit(&argc, argv);
 
-
-	setupIntelMesaConfiguration();
+    setupIntelMesaConfiguration();
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glutInitWindowSize(600, 600);
