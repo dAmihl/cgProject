@@ -129,8 +129,16 @@ std::vector<GLuint> index_buffer_suzanne;
 
 std::vector<GLfloat> normal_buffer_suzanne;
 
-/* Structures for loading of OBJ data */
-obj_scene_data suzanne_data;
+
+/* for the loaded Pavillon obj*/
+
+/* Arrays for holding vertex data of the model */
+std::vector<GLfloat> vertex_buffer_pavillon;
+
+/* Arrays for holding indices of the model */
+std::vector<GLuint> index_buffer_pavillon;
+
+std::vector<GLfloat> normal_buffer_pavillon;
 
 /* Define handles to two vertex buffer objects */
 GLuint SUZANNE_VBO;
@@ -140,7 +148,13 @@ GLuint SUZANNE_IBO;
 
 GLuint SUZANNE_NBO;
 
+/* Define handles to two vertex buffer objects */
+GLuint PAVILLON_VBO;
 
+/* Define handles to two index buffer objects */
+GLuint PAVILLON_IBO;
+
+GLuint PAVILLON_NBO;
 
 
 
@@ -161,7 +175,16 @@ GLuint ShaderProgram;
  GLuint PVMMatrixID;
  GLuint ViewMatrixID;
  GLuint ModelMatrixID;
- GLuint LightID;
+ GLuint LightSource1ID;
+ GLuint LightSource2ID;
+ GLuint LightSource3ID;
+ GLuint LightSource4ID;
+
+ glm::vec3 LightSource1Position = glm::vec3(2.0f, 2.0f, 2.0f);
+ glm::vec3 LightSource2Position = glm::vec3(-2.0f, 2.0f, -2.0f);
+ glm::vec3 LightSource3Position = glm::vec3(-2.0f, 2.0f, 2.0f);
+ glm::vec3 LightSource4Position = glm::vec3(2.0f, 2.0f, -2.0f);
+
 
 glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
 glm::mat4 ViewMatrix; /* Camera view matrix */ 
@@ -196,6 +219,9 @@ glm::mat4 SuzanneMatrix1;
 glm::mat4 SuzanneMatrix2;
 glm::mat4 SuzanneMatrix3;
 glm::mat4 SuzanneMatrix4;
+
+glm::mat4 PavillonModelMatrix;
+glm::mat4 InitialTransformPavillon;
 
 glm::mat4 PVMMatrixGround;
 glm::mat4 PVMMatrixRoof;
@@ -579,9 +605,15 @@ void DrawObjectWithNormals(GLuint VBO, GLuint CBO, GLuint IBO, GLuint NBO, glm::
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, glm::value_ptr(mView));
     glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(PVM));  
-    glm::vec3 lightPos = glm::vec3(0,4,0);
-    glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
     
+    /*
+     Bind Light sources
+     */
+    glUniform3f(LightSource1ID, LightSource1Position.x, LightSource1Position.y, LightSource1Position.z);
+    glUniform3f(LightSource2ID, LightSource2Position.x, LightSource2Position.y, LightSource2Position.z);
+    glUniform3f(LightSource3ID, LightSource3Position.x, LightSource3Position.y, LightSource3Position.z);
+    glUniform3f(LightSource4ID, LightSource4Position.x, LightSource4Position.y, LightSource4Position.z);
+
     /*	-------------------------------------------------------------------------- */
     /* Set state to only draw wireframe (no lighting used, yet) */
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -624,8 +656,16 @@ void DrawObject(GLuint VBO, GLuint CBO, GLuint IBO, glm::mat4 ModelMatrix){
     glUniformMatrix4fv(PVMMatrixID, 1, GL_FALSE, glm::value_ptr(PVM));  
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
-    glm::vec3 lightPos = glm::vec3(4,4,4);
-    glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+
+    
+        /*
+     Bind Light sources
+     */
+    glUniform3f(LightSource1ID, LightSource1Position.x, LightSource1Position.y, LightSource1Position.z);
+    glUniform3f(LightSource2ID, LightSource2Position.x, LightSource2Position.y, LightSource2Position.z);
+    glUniform3f(LightSource3ID, LightSource3Position.x, LightSource3Position.y, LightSource3Position.z);
+    glUniform3f(LightSource4ID, LightSource4Position.x, LightSource4Position.y, LightSource4Position.z);
+
     
     /*	-------------------------------------------------------------------------- */
     /* Set state to only draw wireframe (no lighting used, yet) */
@@ -661,20 +701,23 @@ void Display()
     /* Clear window; color specified in 'Initialize()' */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixGround);
+    /*DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixGround);
     DrawObject(GROUND_VBO, GROUND_CBO, GROUND_IBO, ModelMatrixRoof);
     DrawObject(PILLAR_VBO, PILLAR_CBO, PILLAR_IBO, ModelMatrixPillar);
-    
+    */
     /* Walls and Floor*/
     DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixFloor);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall1);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall2);
-    DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall3);
+    //DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall1);
+    //DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall2);
+    //DrawObject(WALL_VBO, WALL_CBO, WALL_IBO, ModelMatrixWall3);
 
     DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix1);
     DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix2);
     DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix3);
     DrawObjectWithNormals(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix4);
+    
+    DrawObjectWithNormals(PAVILLON_VBO, HORSEBOX_CBO, PAVILLON_IBO,PAVILLON_NBO, PavillonModelMatrix);
+
 /*
     DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix1);
     DrawObject(SUZANNE_VBO, HORSEBOX_CBO, SUZANNE_IBO, SuzanneMatrix2);
@@ -1009,7 +1052,7 @@ void OnIdle()
     ModelMatrixGround = TranslateDownGround * RotationMatrixAnimGround * InitialTransformGround;
     ModelMatrixRoof = TranslateDownRoof * RotationMatrixAnimRoof * InitialTransformRoof;
     ModelMatrixPillar = TranslateDownPillar * RotationMatrixAnimPillar * InitialTransformPillar;
-    
+    PavillonModelMatrix = RotationMatrixAnimGround * InitialTransformPavillon;
 
     /* Apply model rotation; finally move cube down */    
     SuzanneMatrix1 = TranslateDownBox1 * UpDownTranslationBox1 * RotationMatrixAnimBox1 * InitialTransformBox1;
@@ -1133,6 +1176,20 @@ void SetupDataBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_suzanne.size()*sizeof(GLuint), &index_buffer_suzanne[0], GL_STATIC_DRAW);
  
+    
+       glGenBuffers(1, &PAVILLON_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, PAVILLON_VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertex_buffer_pavillon.size()*sizeof(GLfloat), &vertex_buffer_pavillon[0], GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &PAVILLON_NBO);
+    glBindBuffer(GL_ARRAY_BUFFER, PAVILLON_NBO);
+    glBufferData(GL_ARRAY_BUFFER, normal_buffer_pavillon.size()*sizeof(GLfloat), &normal_buffer_pavillon[0], GL_STATIC_DRAW);
+
+    
+    glGenBuffers(1, &PAVILLON_IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, PAVILLON_IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_pavillon.size()*sizeof(GLuint), &index_buffer_pavillon[0], GL_STATIC_DRAW);
+ 
  /* -------------------------------------------------------------------------*/   
     
 }
@@ -1243,7 +1300,11 @@ void CreateShaderProgram()
     PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
     ViewMatrixID = glGetUniformLocation(ShaderProgram, "V");
     ModelMatrixID = glGetUniformLocation(ShaderProgram, "M");
-    LightID = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
+    LightSource1ID = glGetUniformLocation(ShaderProgram, "Light1Position_worldspace");
+    LightSource2ID = glGetUniformLocation(ShaderProgram, "Light2Position_worldspace");
+    LightSource3ID = glGetUniformLocation(ShaderProgram, "Light3Position_worldspace");
+    LightSource4ID = glGetUniformLocation(ShaderProgram, "Light4Position_worldspace");
+    
 
     if (PVMMatrixID == -1) 
     {
@@ -1285,64 +1346,64 @@ void setupIntelMesaConfiguration(){
 *
 *******************************************************************/
 void LoadMesh(){
-    std::string inputfile = "models/teapot.obj";
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
+    std::string inputfileSuzanne = "models/teapot.obj";
+    std::vector<tinyobj::shape_t> shapesSuzanne;
+    std::vector<tinyobj::material_t> materialsSuzanne;
+    
+    std::string inputfilePavillon = "models/pavillon.obj";
+    std::vector<tinyobj::shape_t> shapesPavillon;
+    std::vector<tinyobj::material_t> materialsPavillon;
     
     fprintf(stderr, "Loading mesh..");
      
-    std::string err = tinyobj::LoadObj(shapes, materials, inputfile.c_str());
+    std::string err = tinyobj::LoadObj(shapesSuzanne, materialsSuzanne, inputfileSuzanne.c_str());
 
     if (!err.empty()) {
-        fprintf(stderr, "Error loading obj File!");
+        fprintf(stderr, "Error loading obj File Suzanne!");
       exit(1);
     }else{
      fprintf(stderr, "Mesh loaded!");
     }
     //fprintf(stdout, "Number of shapes: %d\n",shapes.size());
     
-    int numVertices = shapes[0].mesh.positions.size();
-    int numIndices = shapes[0].mesh.indices.size();
-    int numNormals = shapes[0].mesh.normals.size();
+    int numVertices = shapesSuzanne[0].mesh.positions.size();
+    int numIndices = shapesSuzanne[0].mesh.indices.size();
+    int numNormals = shapesSuzanne[0].mesh.normals.size();
     
-    fprintf(stderr, "Number of vertics: %d \n", numVertices);
-    fprintf(stderr, "Number of indices: %d\n", numIndices);
-    fprintf(stderr, "Number of normals: %d\n",numNormals);
+    fprintf(stderr, "Number of vertics Suzanne: %d \n", numVertices);
+    fprintf(stderr, "Number of indices Suzanne: %d\n", numIndices);
+    fprintf(stderr, "Number of normalsSuzanne : %d\n",numNormals);
+
+    vertex_buffer_suzanne = shapesSuzanne[0].mesh.positions;
+    index_buffer_suzanne = shapesSuzanne[0].mesh.indices;
+    normal_buffer_suzanne = shapesSuzanne[0].mesh.normals;
+
     
-    fprintf(stderr, "Beginning parsing..");
-    
-    
-    
-/*    vertex_buffer_suzanne = (GLfloat*) calloc (numVertices*3, sizeof(GLfloat));
-    index_buffer_suzanne = (GLuint*) calloc (numIndices*3, sizeof(GLuint));
-    normal_buffer_suzanne = (GLfloat*) calloc (numNormals*3, sizeof(GLfloat));
-    */
-    vertex_buffer_suzanne = shapes[0].mesh.positions;
-    index_buffer_suzanne = shapes[0].mesh.indices;
-    normal_buffer_suzanne = shapes[0].mesh.normals;
-    
-    fprintf(stderr, "Parsing vertices..");
-   /*for (size_t v = 0; v < shapes[0].mesh.positions.size() / 3; v++) {
-        vertex_buffer_suzanne[v*3] = (GLfloat)(shapes[0].mesh.positions[v*3]);
-	vertex_buffer_suzanne[v*3+1] = (GLfloat)(shapes[0].mesh.positions[v*3+1]);
-	vertex_buffer_suzanne[v*3+2] = (GLfloat)(shapes[0].mesh.positions[v*3+2]);
-    }*/
-    fprintf(stderr, "Parsing indices..");
-    /* Indices */
-     /*for (size_t v = 0; v < shapes[0].mesh.indices.size() / 3; v++) {
-	index_buffer_suzanne[v*3] = (GLuint)(shapes[0].mesh.indices[v*3]);
-	index_buffer_suzanne[v*3+1] = (GLuint)(shapes[0].mesh.indices[v*3+1]);
-	index_buffer_suzanne[v*3+2] = (GLuint)(shapes[0].mesh.indices[v*3+2]);
-    }*/
-        fprintf(stderr, "Parsing normals..");
-     /* Normals */
-    /*for (size_t v = 0; v < shapes[0].mesh.normals.size() / 3; v++) {
-	normal_buffer_suzanne[v*3] = (GLfloat)(shapes[0].mesh.normals[v*3]);
-	normal_buffer_suzanne[v*3+1] = (GLfloat)(shapes[0].mesh.normals[v*3+1]);
-	normal_buffer_suzanne[v*3+2] = (GLfloat)(shapes[0].mesh.normals[v*3+2]);
+    /*
+     Load Pavillon
+     */
+    err = tinyobj::LoadObj(shapesPavillon, materialsPavillon, inputfilePavillon.c_str());
+
+    if (!err.empty()) {
+        fprintf(stderr, "Error loading obj File Pavillon!");
+      exit(1);
+    }else{
+     fprintf(stderr, "Mesh loaded!");
     }
-    */
-    fprintf(stderr, "Parsing finished.");
+    //fprintf(stdout, "Number of shapes: %d\n",shapes.size());
+    
+    numVertices = shapesPavillon[0].mesh.positions.size();
+    numIndices = shapesPavillon[0].mesh.indices.size();
+    numNormals = shapesPavillon[0].mesh.normals.size();
+    
+    fprintf(stderr, "Number of vertics Pavillon: %d \n", numVertices);
+    fprintf(stderr, "Number of indices Pavillon: %d\n", numIndices);
+    fprintf(stderr, "Number of normals Pavillon : %d\n",numNormals);
+
+    vertex_buffer_pavillon = shapesPavillon[0].mesh.positions;
+    index_buffer_pavillon = shapesPavillon[0].mesh.indices;
+    normal_buffer_pavillon = shapesPavillon[0].mesh.normals;
+
 }
 
 
@@ -1443,7 +1504,13 @@ void Initialize(void)
     SuzanneMatrix3 = glm::mat4(1.0f);
     SuzanneMatrix4 = glm::mat4(1.0f);
     
+    PavillonModelMatrix = glm::mat4(1.0f);
+    InitialTransformPavillon = glm::mat4(1.0f);
     
+    glm::mat4 scalePavillon = glm::scale(glm::mat4(1.0f), glm::vec3(0.7f));
+    glm::mat4 translatePavillon = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    
+    InitialTransformPavillon = scalePavillon * translatePavillon;
               
     BOX1_CURRENT_POSITION_Y = BOX1_START_POSITION_Y;
     BOX2_CURRENT_POSITION_Y = BOX2_START_POSITION_Y;
