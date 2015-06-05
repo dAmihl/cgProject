@@ -29,7 +29,7 @@ void main(){
         vec3 DiffuseColor = vec3(vColor.x + 0.1, vColor.y + 0.1, vColor.z + 0.1);
         vec3 AmbientColor = vec3(0.1, 0.1, 0.1) * DiffuseColor;
         vec3 SpecularColor = vec3(0.3,0.3,0.3);
-        vec3 tmpColor = vec3(0f,0f,0f);
+        vec3 tmpColor = vec3(0,0,0);
 
         for (int i = 0; i < numberLightSources; i++){
             vec3 lightCol = LightColor[i];
