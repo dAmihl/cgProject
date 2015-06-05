@@ -312,7 +312,7 @@ glm::mat4 RotationMatrixCameraZ;
 glm::mat4 RotationMatrixCamera;
 
 /* Variables for storing current rotation angles */
-float angleX, angleY, angleZ = 0.0f; 
+double angleX, angleY, angleZ = 0.0f; 
 
 /* Indices to active rotation axes */
 enum {Xaxis=0, Yaxis=1, Zaxis=2};
