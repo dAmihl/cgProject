@@ -26,22 +26,11 @@
  */
 #define MESH_DEBUG 0
 
-#define WALL_SIZE 20.0
-#define WALL_HEIGHT 0.1
-
 #define MAX_ROTATION_SPEED 0.5
 #define START_ROTATION_SPEED 0.05
 
 #define GROUND_SIZE 3.0
 #define GROUND_HEIGHT 0.2
-
-#define BOX1_SIZE 0.3
-#define BOX1_HEIGHT 1.0
-
-    
-#define PILLAR_SIZE 0.5
-#define PILLAR_HEIGHT 2
-
 
 #define GLM_FORCE_RADIANS  /* Use radians in all GLM functions */
 /* Standard includes */
