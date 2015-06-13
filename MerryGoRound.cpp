@@ -24,7 +24,7 @@
  *Prints number of vertices, indices and normals of the loaded obj mesh 
  * when set to 1
  */
-#define MESH_DEBUG 0
+#define MESH_DEBUG 1
 
 #define MAX_ROTATION_SPEED 0.5
 #define START_ROTATION_SPEED 0.05
@@ -58,7 +58,7 @@
 #include <GL/freeglut.h>
 
 #include "LoadShader.h"   /* Provides loading function for shader code */
-
+#include "LoadTexture.h"
 
 /*----------------------------------------------------------------*/
 /* Define handle to a vertex array object (only for MESA USE) */
@@ -84,6 +84,11 @@ GLuint WALL_CBO;
 GLuint WALL_IBO;
 
 
+/* Variables for texture handling */
+GLuint TextureID;
+GLuint TextureUniform;
+TextureDataPtr Texture;
+
 
 /* for the loaded OBJ */
 
@@ -94,6 +99,8 @@ std::vector<GLfloat> vertex_buffer_suzanne;
 std::vector<GLuint> index_buffer_suzanne;
 
 std::vector<GLfloat> normal_buffer_suzanne;
+
+std::vector<GLfloat> uv_buffer_suzanne;
 
 
 /* for the loaded Pavillon obj*/
@@ -106,6 +113,8 @@ std::vector<GLuint> index_buffer_pavillon;
 
 std::vector<GLfloat> normal_buffer_pavillon;
 
+std::vector<GLfloat> uv_buffer_pavillon;
+
 /* for the loaded Floor obj*/
 
 /* Arrays for holding vertex data of the model */
@@ -116,12 +125,15 @@ std::vector<GLuint> index_buffer_floor;
 
 std::vector<GLfloat> normal_buffer_floor;
 
+std::vector<GLfloat> uv_buffer_floor;
+
 /*
  *Define VertexBuffer, IndexBuffer and NormalsBuffer for the Merry Object
  */
 GLuint SUZANNE_VBO;
 GLuint SUZANNE_IBO;
 GLuint SUZANNE_NBO;
+GLuint SUZANNE_UVBO;
 
 /*
  *Define VertexBuffer, IndexBuffer and NormalsBuffer for the MerryGoRound Pavillon
@@ -129,6 +141,7 @@ GLuint SUZANNE_NBO;
 GLuint PAVILLON_VBO;
 GLuint PAVILLON_IBO;
 GLuint PAVILLON_NBO;
+GLuint PAVILLON_UVBO;
 
 /*
  *Define VertexBuffer, IndexBuffer and NormalsBuffer for the Floor object
@@ -136,9 +149,11 @@ GLuint PAVILLON_NBO;
 GLuint FLOOR_VBO;
 GLuint FLOOR_IBO;
 GLuint FLOOR_NBO;
+GLuint FLOOR_UVBO;
+
 
 /* Indices to vertex attributes; in this case positon and color */ 
-enum DataID {vPosition = 0, vColor = 3, vNormals = 2}; 
+enum DataID {vPosition = 0, vUV = 1, vColor = 3, vNormals = 2}; 
 
 
 
@@ -344,7 +359,7 @@ void computeDeltaTime();
 *******************************************************************/
 
 
-void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, glm::mat4 ModelMatrix){
+void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 ModelMatrix){
     
     glm::mat4 mView = ViewMatrix;
     glm::mat4 mProjection = ProjectionMatrix;
@@ -359,11 +374,23 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, glm::mat4 ModelMatrix){
     glBindBuffer(GL_ARRAY_BUFFER, NBO);
     glVertexAttribPointer(vNormals,3,GL_FLOAT,GL_FALSE,0,(void*)0);
     
+    // Bind our texture in Texture Unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, TextureID);
+    TextureUniform  = glGetUniformLocation(ShaderProgram, "textureSampler");
+    glUniform1i(TextureUniform, 0);
+    
+    glEnableVertexAttribArray(vUV);
+    //glBindBuffer(GL_ARRAY_BUFFER, UVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glVertexAttribPointer(vUV,2,GL_FLOAT,GL_FALSE,0,(void*)0);
+                
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     
     GLint size; 
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
     
+ 
  /* Associate program with shader matrices */
  
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
@@ -386,7 +413,61 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, glm::mat4 ModelMatrix){
     /* Disable attributes */
     glDisableVertexAttribArray(vPosition);
     glDisableVertexAttribArray(vNormals);   
+    glDisableVertexAttribArray(vUV);
+}
 
+/******************************************************************
+*
+* SetupTexture
+*
+* This function is called to load the texture and initialize
+* texturing parameters
+*
+*******************************************************************/
+
+void SetupTexture(void)
+{	
+    /* Allocate texture container */
+    Texture = (TextureDataPtr) malloc(sizeof(TextureDataPtr));
+
+    int success = LoadTexture("textures/uvtemplate.bmp", Texture);
+    if (!success)
+    {
+        printf("Error loading texture. Exiting.\n");
+	exit(-1);
+    }
+
+    /* Create texture name and store in handle */
+    glGenTextures(1, &TextureID);
+	
+    /* Bind texture */
+    glBindTexture(GL_TEXTURE_2D, TextureID);
+
+    /* Load texture image into memory */
+    glTexImage2D(GL_TEXTURE_2D,     /* Target texture */
+		 0,                 /* Base level */
+		 GL_RGB,            /* Each element is RGB triple */ 
+		 Texture->width,    /* Texture dimensions */ 
+                 Texture->height, 
+		 0,                 /* Border should be zero */
+		 GL_BGR,            /* Data storage format for BMP file */
+		 GL_UNSIGNED_BYTE,  /* Type of pixel data, one byte per channel */
+		 Texture->data);    /* Pointer to image data  */
+ 
+    /* Next set up texturing parameters */
+
+    /* Repeat texture on edges when tiling */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    /* Linear interpolation for magnification */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    /* Trilinear MIP mapping for minification */ 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+    glGenerateMipmap(GL_TEXTURE_2D); 
+
+    /* Note: MIP mapping not visible due to fixed, i.e. static camera */
 }
 
 
@@ -407,14 +488,14 @@ void Display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /* Walls and Floor*/
-    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO, ModelMatrixFloor);
+    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO,FLOOR_UVBO, ModelMatrixFloor);
 
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix1);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix2);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix3);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SuzanneMatrix4);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO, SuzanneMatrix1);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix2);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix3);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix4);
     
-    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PavillonModelMatrix);
+    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PAVILLON_UVBO,PavillonModelMatrix);
 
     /* Swap between front and back buffer */ 
     glutSwapBuffers();
@@ -843,6 +924,10 @@ void SetupDataBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_suzanne.size()*sizeof(GLuint), &index_buffer_suzanne[0], GL_STATIC_DRAW);
  
+    glGenBuffers(1, &SUZANNE_UVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_UVBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, uv_buffer_suzanne.size()*sizeof(GLfloat), &uv_buffer_suzanne[0], GL_STATIC_DRAW);
+ 
     
     glGenBuffers(1, &PAVILLON_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, PAVILLON_VBO);
@@ -857,6 +942,11 @@ void SetupDataBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, PAVILLON_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_pavillon.size()*sizeof(GLuint), &index_buffer_pavillon[0], GL_STATIC_DRAW);
  
+    glGenBuffers(1, &PAVILLON_UVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, PAVILLON_UVBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, uv_buffer_pavillon.size()*sizeof(GLfloat), &uv_buffer_pavillon[0], GL_STATIC_DRAW);
+ 
+    
     
     glGenBuffers(1, &FLOOR_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, FLOOR_VBO);
@@ -870,6 +960,10 @@ void SetupDataBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, FLOOR_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_floor.size()*sizeof(GLuint), &index_buffer_floor[0], GL_STATIC_DRAW);
      
+    glGenBuffers(1, &FLOOR_UVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, FLOOR_UVBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, uv_buffer_floor.size()*sizeof(GLfloat), &uv_buffer_floor[0], GL_STATIC_DRAW);
+ 
 }
 
 
@@ -1041,14 +1135,18 @@ void LoadMesh(){
         int numVertices = shapesSuzanne[0].mesh.positions.size();
         int numIndices = shapesSuzanne[0].mesh.indices.size();
         int numNormals = shapesSuzanne[0].mesh.normals.size();
+        int numUVs = shapesSuzanne[0].mesh.texcoords.size();
+        
 
         fprintf(stderr, "Number of vertics Suzanne: %d \n", numVertices);
         fprintf(stderr, "Number of indices Suzanne: %d\n", numIndices);
         fprintf(stderr, "Number of normalsSuzanne : %d\n",numNormals);
+        fprintf(stderr, "Nuber of uvs Suzanne: %d\n", numUVs);
     }
     vertex_buffer_suzanne = shapesSuzanne[0].mesh.positions;
     index_buffer_suzanne = shapesSuzanne[0].mesh.indices;
     normal_buffer_suzanne = shapesSuzanne[0].mesh.normals;
+    uv_buffer_suzanne = shapesSuzanne[0].mesh.texcoords;
 
     
     /*
@@ -1073,6 +1171,8 @@ void LoadMesh(){
     vertex_buffer_pavillon = shapesPavillon[0].mesh.positions;
     index_buffer_pavillon = shapesPavillon[0].mesh.indices;
     normal_buffer_pavillon = shapesPavillon[0].mesh.normals;
+    uv_buffer_pavillon = shapesPavillon[0].mesh.texcoords;
+
 
     /*
      Load Ground
@@ -1096,6 +1196,7 @@ void LoadMesh(){
     vertex_buffer_floor = shapesFloor[0].mesh.positions;
     index_buffer_floor = shapesFloor[0].mesh.indices;
     normal_buffer_floor = shapesFloor[0].mesh.normals;
+    uv_buffer_floor = shapesFloor[0].mesh.texcoords;
 
 }
 
@@ -1127,6 +1228,9 @@ void Initialize(void)
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers();
 
+    /* Setup Texture*/
+    SetupTexture();
+    
     /* Setup shaders and shader program */
     CreateShaderProgram();
 
