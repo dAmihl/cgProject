@@ -22,8 +22,12 @@ uniform sampler2D textureSampler;
 
 void main(){
  
+        //vec3 Normal_bumpmap = (2*texture2D(textureSampler, UVcoords).rgb)-1;
+
 	// Normal of the computed fragment, in camera space
+	//vec3 n = normalize( Normal_bumpmap );
 	vec3 n = normalize( Normal_cameraspace );
+
 	// Eye vector (towards the camera)
 	vec3 E = normalize(EyeDirection_cameraspace);
 

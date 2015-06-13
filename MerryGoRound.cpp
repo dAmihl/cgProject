@@ -1121,11 +1121,11 @@ void LoadMesh(){
     std::vector<tinyobj::shape_t> shapesSuzanne;
     std::vector<tinyobj::material_t> materialsSuzanne;
     
-    std::string inputfilePavillon = "models/pavillon.obj";
+    std::string inputfilePavillon = "models/pavillon_metal.obj";
     std::vector<tinyobj::shape_t> shapesPavillon;
     std::vector<tinyobj::material_t> materialsPavillon;
     
-    std::string inputfileFloor = "models/ground_2.obj";
+    std::string inputfileFloor = "models/ground_glyphs.obj";
     std::vector<tinyobj::shape_t> shapesFloor;
     std::vector<tinyobj::material_t> materialsFloor;
     
@@ -1169,10 +1169,13 @@ void LoadMesh(){
         int numVertices = shapesPavillon[0].mesh.positions.size();
         int numIndices = shapesPavillon[0].mesh.indices.size();
         int numNormals = shapesPavillon[0].mesh.normals.size();
+        int numUVs = shapesPavillon[0].mesh.texcoords.size();
+
 
         fprintf(stderr, "Number of vertics Pavillon: %d \n", numVertices);
         fprintf(stderr, "Number of indices Pavillon: %d\n", numIndices);
         fprintf(stderr, "Number of normals Pavillon : %d\n",numNormals);
+        fprintf(stderr, "Number of uvs Pavillon: %d\n", numUVs);
     }
     vertex_buffer_pavillon = shapesPavillon[0].mesh.positions;
     index_buffer_pavillon = shapesPavillon[0].mesh.indices;
@@ -1194,10 +1197,12 @@ void LoadMesh(){
         int numVertices = shapesFloor[0].mesh.positions.size();
         int numIndices = shapesFloor[0].mesh.indices.size();
         int numNormals = shapesFloor[0].mesh.normals.size();
-
+        int numUVS = shapesFloor[0].mesh.texcoords.size();
+        
         fprintf(stderr, "Number of vertics Floor: %d \n", numVertices);
         fprintf(stderr, "Number of indices Floor: %d\n", numIndices);
         fprintf(stderr, "Number of normals Floor : %d\n",numNormals);
+        fprintf(stderr, "Number of uvs Floor: %d\n", numUVS);
     }
     vertex_buffer_floor = shapesFloor[0].mesh.positions;
     index_buffer_floor = shapesFloor[0].mesh.indices;
@@ -1236,8 +1241,9 @@ void Initialize(void)
 
     /* Setup Texture*/
     SetupTexture(&TextureRobotID, TextureRobot, "textures/rustytexture.bmp");
-    SetupTexture(&TextureFloorID, TextureFloor, "textures/rustytexture.bmp");
-    SetupTexture(&TexturePavillonID, TexturePavillon, "textures/rustytexture.bmp");
+    SetupTexture(&TextureFloorID, TextureFloor, "textures/glyphfloor.bmp");
+    //SetupTexture(&TextureFloorID, TextureFloor, "textures/bumpmaptest2.bmp");
+    SetupTexture(&TexturePavillonID, TexturePavillon, "textures/metalpavillon.bmp");
 
     
     /* Setup shaders and shader program */
