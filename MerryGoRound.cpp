@@ -85,9 +85,16 @@ GLuint WALL_IBO;
 
 
 /* Variables for texture handling */
-GLuint TextureID;
 GLuint TextureUniform;
-TextureDataPtr Texture;
+
+GLuint TextureRobotID;
+TextureDataPtr TextureRobot;
+
+GLuint TexturePavillonID;
+TextureDataPtr TexturePavillon;
+
+GLuint TextureFloorID;
+TextureDataPtr TextureFloor;
 
 
 /* for the loaded OBJ */
@@ -359,7 +366,7 @@ void computeDeltaTime();
 *******************************************************************/
 
 
-void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 ModelMatrix){
+void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 ModelMatrix, GLuint TextureID){
     
     glm::mat4 mView = ViewMatrix;
     glm::mat4 mProjection = ProjectionMatrix;
@@ -381,8 +388,8 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 Mode
     glUniform1i(TextureUniform, 0);
     
     glEnableVertexAttribArray(vUV);
-    //glBindBuffer(GL_ARRAY_BUFFER, UVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, UVBO);
+    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(vUV,2,GL_FLOAT,GL_FALSE,0,(void*)0);
                 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
@@ -425,12 +432,12 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 Mode
 *
 *******************************************************************/
 
-void SetupTexture(void)
+void SetupTexture(GLuint* TextureID, TextureDataPtr Texture, const char* filepath)
 {	
     /* Allocate texture container */
     Texture = (TextureDataPtr) malloc(sizeof(TextureDataPtr));
 
-    int success = LoadTexture("textures/uvtemplate.bmp", Texture);
+    int success = LoadTexture(filepath, Texture);
     if (!success)
     {
         printf("Error loading texture. Exiting.\n");
@@ -438,10 +445,10 @@ void SetupTexture(void)
     }
 
     /* Create texture name and store in handle */
-    glGenTextures(1, &TextureID);
+    glGenTextures(1, TextureID);
 	
     /* Bind texture */
-    glBindTexture(GL_TEXTURE_2D, TextureID);
+    glBindTexture(GL_TEXTURE_2D, *TextureID);
 
     /* Load texture image into memory */
     glTexImage2D(GL_TEXTURE_2D,     /* Target texture */
@@ -459,7 +466,7 @@ void SetupTexture(void)
     /* Repeat texture on edges when tiling */
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
+    
     /* Linear interpolation for magnification */
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -467,7 +474,6 @@ void SetupTexture(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
     glGenerateMipmap(GL_TEXTURE_2D); 
 
-    /* Note: MIP mapping not visible due to fixed, i.e. static camera */
 }
 
 
@@ -488,14 +494,14 @@ void Display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /* Walls and Floor*/
-    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO,FLOOR_UVBO, ModelMatrixFloor);
+    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO,FLOOR_UVBO, ModelMatrixFloor, TextureFloorID);
 
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO, SuzanneMatrix1);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix2);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix3);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix4);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO, SuzanneMatrix1, TextureRobotID);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix2, TextureRobotID);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix3, TextureRobotID);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix4, TextureRobotID);
     
-    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PAVILLON_UVBO,PavillonModelMatrix);
+    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PAVILLON_UVBO,PavillonModelMatrix, TexturePavillonID);
 
     /* Swap between front and back buffer */ 
     glutSwapBuffers();
@@ -1111,7 +1117,7 @@ void setupIntelMesaConfiguration(){
 
 
 void LoadMesh(){
-    std::string inputfileSuzanne = "models/ufo.obj";
+    std::string inputfileSuzanne = "models/ufo_rusty.obj";
     std::vector<tinyobj::shape_t> shapesSuzanne;
     std::vector<tinyobj::material_t> materialsSuzanne;
     
@@ -1229,7 +1235,10 @@ void Initialize(void)
     SetupDataBuffers();
 
     /* Setup Texture*/
-    SetupTexture();
+    SetupTexture(&TextureRobotID, TextureRobot, "textures/rustytexture.bmp");
+    SetupTexture(&TextureFloorID, TextureFloor, "textures/rustytexture.bmp");
+    SetupTexture(&TexturePavillonID, TexturePavillon, "textures/rustytexture.bmp");
+
     
     /* Setup shaders and shader program */
     CreateShaderProgram();
