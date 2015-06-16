@@ -19,14 +19,17 @@ uniform vec3 LightPosition_worldspace[numberLightSources];
 uniform vec3 LightColor[numberLightSources];
 uniform float LightIntensity[numberLightSources];
 uniform sampler2D textureSampler;
+uniform sampler2D normalMapSampler;
 
 void main(){
  
-        //vec3 Normal_bumpmap = (2*texture2D(textureSampler, UVcoords).rgb)-1;
+        vec3 Normal_bumpmap = (2*texture2D(normalMapSampler, UVcoords).rgb)-1;
 
 	// Normal of the computed fragment, in camera space
 	//vec3 n = normalize( Normal_bumpmap );
 	vec3 n = normalize( Normal_cameraspace );
+
+        
 
 	// Eye vector (towards the camera)
 	vec3 E = normalize(EyeDirection_cameraspace);

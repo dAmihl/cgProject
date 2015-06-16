@@ -24,7 +24,7 @@
  *Prints number of vertices, indices and normals of the loaded obj mesh 
  * when set to 1
  */
-#define MESH_DEBUG 1
+#define MESH_DEBUG 0
 
 #define MAX_ROTATION_SPEED 0.5
 #define START_ROTATION_SPEED 0.05
@@ -86,6 +86,7 @@ GLuint WALL_IBO;
 
 /* Variables for texture handling */
 GLuint TextureUniform;
+GLuint NormalMapUniform;
 
 GLuint TextureRobotID;
 TextureDataPtr TextureRobot;
@@ -95,6 +96,9 @@ TextureDataPtr TexturePavillon;
 
 GLuint TextureFloorID;
 TextureDataPtr TextureFloor;
+
+GLuint TextureFloorNormalMapID;
+TextureDataPtr TextureFloorNormalMap;
 
 
 /* for the loaded OBJ */
@@ -168,16 +172,51 @@ enum DataID {vPosition = 0, vUV = 1, vColor = 3, vNormals = 2};
 static const char* VertexShaderString;
 static const char* FragmentShaderString;
 
-GLuint ShaderProgram;
+GLuint ShaderProgramStandard;
+GLuint ShaderProgramBillboard;
 
 //glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 0.0f);
 
  GLuint PVMMatrixID;
  GLuint ViewMatrixID;
  GLuint ModelMatrixID;
+ 
+ 
  GLuint LightSourcesID;
  GLuint LightColorsID;
  GLuint LightIntensitiesID;
+ 
+ 
+ /*
+  The Billboard to be drawn
+  */
+ 
+std::vector<GLfloat> billboard_vertex_buffer_data = {
+    -1.0f, -1.0f, 0.0f,
+    1.0f, 1.0f, 0.0f,
+    -1.0f, 1.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f,
+    1.0f, 1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f
+ };
+ 
+std::vector<GLfloat> billboard_uv_buffer_data = {
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f
+ };
+ 
+ GLuint BILLBOARD_VBO;
+  GLuint BILLBOARD_UVBO;
+ TextureDataPtr TextureBillboard;
+ GLuint TextureBillboardID;
+ 
+ 
+ 
+ 
  
  /*
   * Light sources and Configurations
@@ -366,7 +405,9 @@ void computeDeltaTime();
 *******************************************************************/
 
 
-void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 ModelMatrix, GLuint TextureID){
+void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 ModelMatrix, GLuint TextureID, GLuint NormalMapID){
+    
+    
     
     glm::mat4 mView = ViewMatrix;
     glm::mat4 mProjection = ProjectionMatrix;
@@ -384,8 +425,19 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 Mode
     // Bind our texture in Texture Unit 0
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, TextureID);
-    TextureUniform  = glGetUniformLocation(ShaderProgram, "textureSampler");
+    TextureUniform  = glGetUniformLocation(ShaderProgramStandard, "textureSampler");
     glUniform1i(TextureUniform, 0);
+    
+    
+    /*
+     If a normal map is given, bind it to the normalMapSampler uniform
+     */
+     if (NormalMapID != 0){
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, NormalMapID);
+        NormalMapUniform  = glGetUniformLocation(ShaderProgramStandard, "normalMapSampler");
+        glUniform1i(NormalMapUniform, 1);
+    }
     
     glEnableVertexAttribArray(vUV);
     glBindBuffer(GL_ARRAY_BUFFER, UVBO);
@@ -421,6 +473,61 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 Mode
     glDisableVertexAttribArray(vPosition);
     glDisableVertexAttribArray(vNormals);   
     glDisableVertexAttribArray(vUV);
+}
+
+
+void DrawBillboard(GLuint VBO, GLuint UVBO, GLuint TextureID, glm::vec3 billboardPos, glm::vec2 billboardSize){
+    
+   
+    
+    glm::mat4 mView = ViewMatrix;
+    glm::mat4 mProjection = ProjectionMatrix;
+    glm::mat4 PV = mProjection * mView;
+    
+    // Vertex shader
+    GLuint CameraRight_worldspace_ID  = glGetUniformLocation(ShaderProgramBillboard, "CameraRight_worldspace");
+    GLuint CameraUp_worldspace_ID  = glGetUniformLocation(ShaderProgramBillboard, "CameraUp_worldspace");
+    GLuint ViewProjMatrixID = glGetUniformLocation(ShaderProgramBillboard, "VP");
+    GLuint BillboardPosID = glGetUniformLocation(ShaderProgramBillboard, "BillboardPos");    
+    GLuint BillboardSizeID = glGetUniformLocation(ShaderProgramBillboard, "BillboardSize");
+    
+       
+    /* Associate program with shader matrices */
+    glUniform3f(CameraRight_worldspace_ID, ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
+    glUniform3f(CameraUp_worldspace_ID   , ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
+		
+    glUniform3f(BillboardPosID, billboardPos.x, billboardPos.y, billboardPos.z); // The billboard will be just above the cube
+    glUniform2f(BillboardSizeID, billboardSize.x, billboardSize.y);     // and 1m*12cm, because it matches its 256*32 resolution =)
+    glUniformMatrix4fv(ViewProjMatrixID, 1, GL_FALSE, glm::value_ptr(PV));
+
+    
+    glEnableVertexAttribArray(vPosition);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    
+    // Bind our texture in Texture Unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, TextureID);
+    TextureUniform  = glGetUniformLocation(ShaderProgramBillboard, "textureSampler");
+    glUniform1i(TextureUniform, 0);
+    
+    
+    glEnableVertexAttribArray(vUV);
+    glBindBuffer(GL_ARRAY_BUFFER, UVBO);
+    glVertexAttribPointer(vUV,2,GL_FLOAT,GL_FALSE,0,(void*)0);
+ 
+    
+    GLint size; 
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    
+    /* Issue draw command, using indexed triangle list */
+    glDrawElements(GL_TRIANGLES, size/sizeof(GLuint), GL_UNSIGNED_INT, 0);
+    
+    /* Disable attributes */
+    glDisableVertexAttribArray(vPosition);
+    glDisableVertexAttribArray(vUV);
+
 }
 
 /******************************************************************
@@ -493,16 +600,23 @@ void Display()
     /* Clear window; color specified in 'Initialize()' */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+    glUseProgram(ShaderProgramStandard);
     /* Walls and Floor*/
-    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO,FLOOR_UVBO, ModelMatrixFloor, TextureFloorID);
+    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO,FLOOR_UVBO, ModelMatrixFloor, TextureFloorID, TextureFloorNormalMapID);
 
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO, SuzanneMatrix1, TextureRobotID);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix2, TextureRobotID);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix3, TextureRobotID);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix4, TextureRobotID);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO, SuzanneMatrix1, TextureRobotID, 0);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix2, TextureRobotID, 0);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix3, TextureRobotID, 0);
+    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix4, TextureRobotID, 0);
     
-    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PAVILLON_UVBO,PavillonModelMatrix, TexturePavillonID);
+    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PAVILLON_UVBO,PavillonModelMatrix, TexturePavillonID, 0);
 
+        
+    glUseProgram(ShaderProgramBillboard);
+    DrawBillboard(BILLBOARD_VBO, BILLBOARD_UVBO, TextureBillboardID, glm::vec3(0.0f, 3.0f, 20.0f), glm::vec2(10.0f, 10.0f));
+    
+    
     /* Swap between front and back buffer */ 
     glutSwapBuffers();
 }
@@ -970,6 +1084,15 @@ void SetupDataBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, FLOOR_UVBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, uv_buffer_floor.size()*sizeof(GLfloat), &uv_buffer_floor[0], GL_STATIC_DRAW);
  
+    
+    glGenBuffers(1, &BILLBOARD_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, BILLBOARD_VBO);
+    glBufferData(GL_ARRAY_BUFFER, billboard_vertex_buffer_data.size()*sizeof(GLfloat), &billboard_vertex_buffer_data[0], GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &BILLBOARD_UVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BILLBOARD_UVBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, billboard_uv_buffer_data.size()*sizeof(GLfloat), &billboard_uv_buffer_data[0], GL_STATIC_DRAW);
+ 
 }
 
 
@@ -1025,62 +1148,64 @@ void AddShader(GLuint ShaderProgram, const char* ShaderCode, GLenum ShaderType)
 *
 *******************************************************************/
 
-void CreateShaderProgram()
+void CreateShaderProgram(GLuint* shader, const char* vsPath, const char* fsPath)
 {
     /* Allocate shader object */
-    ShaderProgram = glCreateProgram();
+    *shader = glCreateProgram();
 
-    if (ShaderProgram == 0) 
+    if (*shader == 0) 
     {
         fprintf(stderr, "Error creating shader program\n");
         exit(1);
     }
 
     /* Load shader code from file */
-    VertexShaderString = LoadShader("shaders/standard.vs");
-    FragmentShaderString = LoadShader("shaders/standard.fs");
+    VertexShaderString = LoadShader(vsPath);
+    FragmentShaderString = LoadShader(fsPath);
 
     /* Separately add vertex and fragment shader to program */
-    AddShader(ShaderProgram, VertexShaderString, GL_VERTEX_SHADER);
-    AddShader(ShaderProgram, FragmentShaderString, GL_FRAGMENT_SHADER);
+    AddShader(*shader, VertexShaderString, GL_VERTEX_SHADER);
+    AddShader(*shader, FragmentShaderString, GL_FRAGMENT_SHADER);
 
     GLint Success = 0;
     GLchar ErrorLog[1024];
 
     /* Link shader code into executable shader program */
-    glLinkProgram(ShaderProgram);
+    glLinkProgram(*shader);
 
     /* Check results of linking step */
-    glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &Success);
+    glGetProgramiv(*shader, GL_LINK_STATUS, &Success);
 
     if (Success == 0) 
     {
-        glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
+        glGetProgramInfoLog(*shader, sizeof(ErrorLog), NULL, ErrorLog);
         fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
         exit(1);
     }
 
     /* Check if shader program can be executed */ 
-    glValidateProgram(ShaderProgram);
-    glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
+    glValidateProgram(*shader);
+    glGetProgramiv(*shader, GL_VALIDATE_STATUS, &Success);
 
     if (!Success) 
     {
-        glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
+        glGetProgramInfoLog(*shader, sizeof(ErrorLog), NULL, ErrorLog);
         fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
         exit(1);
     }
 
-    /* Put linked shader program into drawing pipeline */
-    glUseProgram(ShaderProgram);
     
-    
-    PVMMatrixID = glGetUniformLocation(ShaderProgram, "ProjectionViewModelMatrix");
-    ViewMatrixID = glGetUniformLocation(ShaderProgram, "V");
-    ModelMatrixID = glGetUniformLocation(ShaderProgram, "M");
-    LightSourcesID = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
-    LightColorsID = glGetUniformLocation(ShaderProgram, "LightColor");
-    LightIntensitiesID = glGetUniformLocation(ShaderProgram, "LightIntensity");
+
+}
+
+void InitializeStandardShaderID(){
+        
+    PVMMatrixID = glGetUniformLocation(ShaderProgramStandard, "ProjectionViewModelMatrix");
+    ViewMatrixID = glGetUniformLocation(ShaderProgramStandard, "V");
+    ModelMatrixID = glGetUniformLocation(ShaderProgramStandard, "M");
+    LightSourcesID = glGetUniformLocation(ShaderProgramStandard, "LightPosition_worldspace");
+    LightColorsID = glGetUniformLocation(ShaderProgramStandard, "LightColor");
+    LightIntensitiesID = glGetUniformLocation(ShaderProgramStandard, "LightIntensity");
 }
 
 /*
@@ -1242,12 +1367,17 @@ void Initialize(void)
     /* Setup Texture*/
     SetupTexture(&TextureRobotID, TextureRobot, "textures/rustytexture.bmp");
     SetupTexture(&TextureFloorID, TextureFloor, "textures/glyphfloor.bmp");
-    //SetupTexture(&TextureFloorID, TextureFloor, "textures/bumpmaptest2.bmp");
+    SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/bumpmaptest2.bmp");
     SetupTexture(&TexturePavillonID, TexturePavillon, "textures/metalpavillon.bmp");
+
+    SetupTexture(&TextureBillboardID, TextureBillboard, "textures/uvtemplate.bmp");
 
     
     /* Setup shaders and shader program */
-    CreateShaderProgram();
+    CreateShaderProgram(&ShaderProgramStandard, "shaders/standard.vs", "shaders/standard.fs");
+    CreateShaderProgram(&ShaderProgramBillboard, "shaders/billboard.vs", "shaders/billboard.fs");
+
+    InitializeStandardShaderID();
 
     /* Initialize matrices */
    
