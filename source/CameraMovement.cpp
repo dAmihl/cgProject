@@ -157,3 +157,7 @@ void MouseMoveUpdate(int x, int y){
     MOUSE_OLD_X_POS = x;
     MOUSE_OLD_Y_POS = y;
 }
+
+void setAxis(int turnAxis){
+    axis = turnAxis;
+}

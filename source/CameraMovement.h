@@ -17,6 +17,8 @@
     void moveLeft(GLboolean flag);
     void moveRight(GLboolean flag);
     
+    void setAxis(int turnAxis);
+    
     void MouseMoveUpdate(int x, int y);
 
     extern int mouseDeltaX;

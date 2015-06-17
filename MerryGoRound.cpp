@@ -137,15 +137,8 @@ GLuint ShaderProgramBillboard;
       60, 30, 30, 30
   };
 
-
-float camera_disp = -25.0;
-float camera_aproach = 10.0;
-
 GLboolean animCamera = GL_TRUE; // if the camera is animated
 GLboolean animMerryGoRound = GL_TRUE; // if the merry go round is animated
-
-
-
 
 glm::mat4 ModelMatrixFloor; /* Model matrix for the floor entity*/
 glm::mat4 InitialTransformFloor;
@@ -222,7 +215,6 @@ int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 float rotation_speed_factor = START_ROTATION_SPEED;
 int rotation_direction = 1;
 float updown_speed_factor = 1.0f;
-float zoom = 1.0;
 
 
 
@@ -232,9 +224,9 @@ float zoom = 1.0;
   Sets up the vertices and uv coordinates
   * for a standard billboard
   */
- void SetupStandardBillboard(){
+ void SetupStandardBillboard(BillboardObject* billboard){
       
-    Billboard.vertex_buffer = {
+    billboard->vertex_buffer = {
         -1.0f, -1.0f, 0.0f,
         1.0f, 1.0f, 0.0f,
         -1.0f, 1.0f, 0.0f,
@@ -242,10 +234,8 @@ float zoom = 1.0;
         1.0f, 1.0f, 0.0f,
         1.0f, -1.0f, 0.0f
      };
-    
-    
  
-    Billboard.uv_buffer = {
+    billboard->uv_buffer = {
         0.0f, 0.0f,
         1.0f, 1.0f,
         0.0f, 1.0f,
@@ -495,16 +485,15 @@ void Mouse(int button, int state, int x, int y)
         switch(button) 
 	{
 	    case GLUT_LEFT_BUTTON:    
-	        axis = Xaxis;
+	        setAxis(Xaxis);
 		break;
 
 	    case GLUT_MIDDLE_BUTTON:  
-  	        axis = Yaxis;
+                setAxis(Yaxis);
 	        break;
 		
 	    case GLUT_RIGHT_BUTTON: 
-	        axis = Zaxis;
-		zoom = 1.0;
+	        setAxis(Zaxis);
 		break;
 	}
     }
@@ -829,51 +818,6 @@ void SetupDataBuffers(WorldObject* object)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->UVBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, object->uv_buffer.size()*sizeof(GLfloat), &object->uv_buffer[0], GL_STATIC_DRAW);
  
-    /*
-    glGenBuffers(1, &PAVILLON_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, PAVILLON_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertex_buffer_pavillon.size()*sizeof(GLfloat), &vertex_buffer_pavillon[0], GL_STATIC_DRAW);
-    
-    glGenBuffers(1, &PAVILLON_NBO);
-    glBindBuffer(GL_ARRAY_BUFFER, PAVILLON_NBO);
-    glBufferData(GL_ARRAY_BUFFER, normal_buffer_pavillon.size()*sizeof(GLfloat), &normal_buffer_pavillon[0], GL_STATIC_DRAW);
-
-    
-    glGenBuffers(1, &PAVILLON_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, PAVILLON_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_pavillon.size()*sizeof(GLuint), &index_buffer_pavillon[0], GL_STATIC_DRAW);
- 
-    glGenBuffers(1, &PAVILLON_UVBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, PAVILLON_UVBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, uv_buffer_pavillon.size()*sizeof(GLfloat), &uv_buffer_pavillon[0], GL_STATIC_DRAW);
- 
-    
-    
-    glGenBuffers(1, &FLOOR_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, FLOOR_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertex_buffer_floor.size()*sizeof(GLfloat), &vertex_buffer_floor[0], GL_STATIC_DRAW);
-    
-    glGenBuffers(1, &FLOOR_NBO);
-    glBindBuffer(GL_ARRAY_BUFFER, FLOOR_NBO);
-    glBufferData(GL_ARRAY_BUFFER, normal_buffer_floor.size()*sizeof(GLfloat), &normal_buffer_floor[0], GL_STATIC_DRAW);
-
-    glGenBuffers(1, &FLOOR_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, FLOOR_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_floor.size()*sizeof(GLuint), &index_buffer_floor[0], GL_STATIC_DRAW);
-     
-    glGenBuffers(1, &FLOOR_UVBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, FLOOR_UVBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, uv_buffer_floor.size()*sizeof(GLfloat), &uv_buffer_floor[0], GL_STATIC_DRAW);
- 
-    
-    glGenBuffers(1, &BILLBOARD_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, BILLBOARD_VBO);
-    glBufferData(GL_ARRAY_BUFFER, billboard_vertex_buffer_data.size()*sizeof(GLfloat), &billboard_vertex_buffer_data[0], GL_STATIC_DRAW);
-    
-    glGenBuffers(1, &BILLBOARD_UVBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BILLBOARD_UVBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, billboard_uv_buffer_data.size()*sizeof(GLfloat), &billboard_uv_buffer_data[0], GL_STATIC_DRAW);
- */
 }
 
 void SetupDataBuffersBillboards(BillboardObject* billboard){
@@ -1098,7 +1042,7 @@ void Initialize(void)
     LoadMesh(&Pavillon, "models/pavillon_metal.obj");
     LoadMesh(&Floor, "models/ground_glyphs.obj");
 
-    SetupStandardBillboard();
+    SetupStandardBillboard(&Billboard);
     
     glClearColor(0.0f, 0.0f, 0.3f, 0.0);
 
@@ -1109,8 +1053,6 @@ void Initialize(void)
     /*Intel troubleshooting*/
     setupArrayObject();
 
- 
-    
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers(&Robot);
     SetupDataBuffers(&Floor);
