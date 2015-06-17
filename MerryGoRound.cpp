@@ -112,71 +112,36 @@ typedef struct {
     GLuint VBO;
     GLuint CBO;
     GLuint NBO;
+    GLuint IBO;
     GLuint UVBO;
     GLuint TBO;
     
+    TextureDataPtr TextureData;
+    GLuint TextureID;
+    
 } WorldObject;
 
-/* for the loaded OBJ */
 
-/* Arrays for holding vertex data of the model */
-std::vector<GLfloat> vertex_buffer_suzanne;
+typedef struct {
+    
+    std::vector<GLfloat> vertex_buffer;
+    std::vector<GLfloat> uv_buffer;
+    std::vector<GLfloat> tangent_buffer;
+    
+    GLuint VBO;
+    GLuint UVBO;
+    GLuint TBO;
+    
+    TextureDataPtr TextureData;
+    GLuint TextureID;
+    
+} BillboardObject;
 
-/* Arrays for holding indices of the model */
-std::vector<GLuint> index_buffer_suzanne;
+WorldObject Robot;
+WorldObject Pavillon;
+WorldObject Floor;
 
-std::vector<GLfloat> normal_buffer_suzanne;
-
-std::vector<GLfloat> uv_buffer_suzanne;
-
-
-/* for the loaded Pavillon obj*/
-
-/* Arrays for holding vertex data of the model */
-std::vector<GLfloat> vertex_buffer_pavillon;
-
-/* Arrays for holding indices of the model */
-std::vector<GLuint> index_buffer_pavillon;
-
-std::vector<GLfloat> normal_buffer_pavillon;
-
-std::vector<GLfloat> uv_buffer_pavillon;
-
-/* for the loaded Floor obj*/
-
-/* Arrays for holding vertex data of the model */
-std::vector<GLfloat> vertex_buffer_floor;
-
-/* Arrays for holding indices of the model */
-std::vector<GLuint> index_buffer_floor;
-
-std::vector<GLfloat> normal_buffer_floor;
-
-std::vector<GLfloat> uv_buffer_floor;
-
-/*
- *Define VertexBuffer, IndexBuffer and NormalsBuffer for the Merry Object
- */
-GLuint SUZANNE_VBO;
-GLuint SUZANNE_IBO;
-GLuint SUZANNE_NBO;
-GLuint SUZANNE_UVBO;
-
-/*
- *Define VertexBuffer, IndexBuffer and NormalsBuffer for the MerryGoRound Pavillon
- */
-GLuint PAVILLON_VBO;
-GLuint PAVILLON_IBO;
-GLuint PAVILLON_NBO;
-GLuint PAVILLON_UVBO;
-
-/*
- *Define VertexBuffer, IndexBuffer and NormalsBuffer for the Floor object
- */
-GLuint FLOOR_VBO;
-GLuint FLOOR_IBO;
-GLuint FLOOR_NBO;
-GLuint FLOOR_UVBO;
+BillboardObject Billboard;
 
 
 /* Indices to vertex attributes; in this case positon and color */ 
@@ -206,24 +171,7 @@ GLuint ShaderProgramBillboard;
  /*
   The Billboard to be drawn
   */
- 
-std::vector<GLfloat> billboard_vertex_buffer_data = {
-    -1.0f, -1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
-    -1.0f, -1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f
- };
- 
-std::vector<GLfloat> billboard_uv_buffer_data = {
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f
- };
+
  
  GLuint BILLBOARD_VBO;
   GLuint BILLBOARD_UVBO;
@@ -232,6 +180,28 @@ std::vector<GLfloat> billboard_uv_buffer_data = {
  
  
  
+ void setupBillboard(){
+      
+    Billboard.vertex_buffer = {
+        -1.0f, -1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f
+     };
+    
+    
+ 
+    Billboard.uv_buffer = {
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f
+ };
+ }
  
  
  /*
@@ -620,19 +590,18 @@ void Display()
 
     glUseProgram(ShaderProgramStandard);
     /* Walls and Floor*/
-    DrawObject(FLOOR_VBO,  FLOOR_IBO, FLOOR_NBO,FLOOR_UVBO, ModelMatrixFloor, TextureFloorID, TextureFloorNormalMapID);
+    DrawObject(Floor.VBO,  Floor.IBO, Floor.NBO,Floor.UVBO, ModelMatrixFloor, Floor.TextureID, TextureFloorNormalMapID);
 
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO, SuzanneMatrix1, TextureRobotID, 0);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix2, TextureRobotID, 0);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix3, TextureRobotID, 0);
-    DrawObject(SUZANNE_VBO,  SUZANNE_IBO,SUZANNE_NBO, SUZANNE_UVBO,SuzanneMatrix4, TextureRobotID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix1, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix2, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix3, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix4, Robot.TextureID, 0);
     
-    DrawObject(PAVILLON_VBO,  PAVILLON_IBO,PAVILLON_NBO, PAVILLON_UVBO,PavillonModelMatrix, TexturePavillonID, 0);
+    DrawObject(Pavillon.VBO,  Pavillon.IBO,Pavillon.NBO, Pavillon.UVBO,PavillonModelMatrix, Pavillon.TextureID, 0);
 
         
     glUseProgram(ShaderProgramBillboard);
-    DrawBillboard(BILLBOARD_VBO, BILLBOARD_UVBO, TextureBillboardID, glm::vec3(0.0f, 5.0f, 50.0f), glm::vec2(5.0f, 5.0f));
-    DrawBillboard(BILLBOARD_VBO, BILLBOARD_UVBO, TextureBillboardID, glm::vec3(30.0f, 5.0f, 50.0f), glm::vec2(5.0f, 5.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(0.0f, 5.0f, 50.0f), glm::vec2(5.0f, 5.0f));
 
     
     /* Swap between front and back buffer */ 
@@ -1067,26 +1036,27 @@ void OnIdle()
 *
 *******************************************************************/
 
-void SetupDataBuffers()
+void SetupDataBuffers(WorldObject* object)
 {
-    glGenBuffers(1, &SUZANNE_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertex_buffer_suzanne.size()*sizeof(GLfloat), &vertex_buffer_suzanne[0], GL_STATIC_DRAW);
     
-    glGenBuffers(1, &SUZANNE_NBO);
-    glBindBuffer(GL_ARRAY_BUFFER, SUZANNE_NBO);
-    glBufferData(GL_ARRAY_BUFFER, normal_buffer_suzanne.size()*sizeof(GLfloat), &normal_buffer_suzanne[0], GL_STATIC_DRAW);
+    glGenBuffers(1, &object->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, object->VBO);
+    glBufferData(GL_ARRAY_BUFFER, object->vertex_buffer.size()*sizeof(GLfloat), &object->vertex_buffer[0], GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &object->NBO);
+    glBindBuffer(GL_ARRAY_BUFFER, object->NBO);
+    glBufferData(GL_ARRAY_BUFFER, object->normal_buffer.size()*sizeof(GLfloat), &object->normal_buffer[0], GL_STATIC_DRAW);
 
     
-    glGenBuffers(1, &SUZANNE_IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_suzanne.size()*sizeof(GLuint), &index_buffer_suzanne[0], GL_STATIC_DRAW);
+    glGenBuffers(1, &object->IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, object->index_buffer.size()*sizeof(GLuint), &object->index_buffer[0], GL_STATIC_DRAW);
  
-    glGenBuffers(1, &SUZANNE_UVBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SUZANNE_UVBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, uv_buffer_suzanne.size()*sizeof(GLfloat), &uv_buffer_suzanne[0], GL_STATIC_DRAW);
+    glGenBuffers(1, &object->UVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->UVBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, object->uv_buffer.size()*sizeof(GLfloat), &object->uv_buffer[0], GL_STATIC_DRAW);
  
-    
+    /*
     glGenBuffers(1, &PAVILLON_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, PAVILLON_VBO);
     glBufferData(GL_ARRAY_BUFFER, vertex_buffer_pavillon.size()*sizeof(GLfloat), &vertex_buffer_pavillon[0], GL_STATIC_DRAW);
@@ -1130,7 +1100,18 @@ void SetupDataBuffers()
     glGenBuffers(1, &BILLBOARD_UVBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BILLBOARD_UVBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, billboard_uv_buffer_data.size()*sizeof(GLfloat), &billboard_uv_buffer_data[0], GL_STATIC_DRAW);
- 
+ */
+}
+
+void SetupDataBuffersBillboards(BillboardObject* billboard){
+    
+    glGenBuffers(1, &billboard->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, billboard->VBO);
+    glBufferData(GL_ARRAY_BUFFER, billboard->vertex_buffer.size()*sizeof(GLfloat), &billboard->vertex_buffer[0], GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &billboard->UVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, billboard->UVBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, billboard->uv_buffer.size()*sizeof(GLfloat), &billboard->uv_buffer[0], GL_STATIC_DRAW);
 }
 
 
@@ -1279,99 +1260,35 @@ void setupIntelMesaConfiguration(){
 *******************************************************************/
 
 
-void LoadMesh(){
-    std::string inputfileSuzanne = "models/ufo_rusty.obj";
-    std::vector<tinyobj::shape_t> shapesSuzanne;
-    std::vector<tinyobj::material_t> materialsSuzanne;
-    
-    std::string inputfilePavillon = "models/pavillon_metal.obj";
-    std::vector<tinyobj::shape_t> shapesPavillon;
-    std::vector<tinyobj::material_t> materialsPavillon;
-    
-    std::string inputfileFloor = "models/ground_glyphs.obj";
-    std::vector<tinyobj::shape_t> shapesFloor;
-    std::vector<tinyobj::material_t> materialsFloor;
+void LoadMesh(WorldObject* object, const char* path){
+    std::string inputfile = path;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
     
          
-    std::string err = tinyobj::LoadObj(shapesSuzanne, materialsSuzanne, inputfileSuzanne.c_str());
+    std::string err = tinyobj::LoadObj(shapes, materials, inputfile.c_str());
 
     if (!err.empty()) {
-        fprintf(stderr, "Error loading obj File Suzanne!");
+        fprintf(stderr, "Error loading obj File!");
       exit(1);
     }
     
     if (MESH_DEBUG){
-        int numVertices = shapesSuzanne[0].mesh.positions.size();
-        int numIndices = shapesSuzanne[0].mesh.indices.size();
-        int numNormals = shapesSuzanne[0].mesh.normals.size();
-        int numUVs = shapesSuzanne[0].mesh.texcoords.size();
+        int numVertices = shapes[0].mesh.positions.size();
+        int numIndices = shapes[0].mesh.indices.size();
+        int numNormals = shapes[0].mesh.normals.size();
+        int numUVs = shapes[0].mesh.texcoords.size();
         
 
-        fprintf(stderr, "Number of vertics Suzanne: %d \n", numVertices);
-        fprintf(stderr, "Number of indices Suzanne: %d\n", numIndices);
-        fprintf(stderr, "Number of normalsSuzanne : %d\n",numNormals);
-        fprintf(stderr, "Nuber of uvs Suzanne: %d\n", numUVs);
+        fprintf(stderr, "Number of vertics: %d \n", numVertices);
+        fprintf(stderr, "Number of indices: %d\n", numIndices);
+        fprintf(stderr, "Number of normals : %d\n",numNormals);
+        fprintf(stderr, "Nuber of uvs: %d\n", numUVs);
     }
-    vertex_buffer_suzanne = shapesSuzanne[0].mesh.positions;
-    index_buffer_suzanne = shapesSuzanne[0].mesh.indices;
-    normal_buffer_suzanne = shapesSuzanne[0].mesh.normals;
-    uv_buffer_suzanne = shapesSuzanne[0].mesh.texcoords;
-
-    
-    /*
-     Load Pavillon
-     */
-    err = tinyobj::LoadObj(shapesPavillon, materialsPavillon, inputfilePavillon.c_str());
-
-    if (!err.empty()) {
-        fprintf(stderr, "Error loading obj File Pavillon!");
-      exit(1);
-    }
-    
-    if (MESH_DEBUG){
-        int numVertices = shapesPavillon[0].mesh.positions.size();
-        int numIndices = shapesPavillon[0].mesh.indices.size();
-        int numNormals = shapesPavillon[0].mesh.normals.size();
-        int numUVs = shapesPavillon[0].mesh.texcoords.size();
-
-
-        fprintf(stderr, "Number of vertics Pavillon: %d \n", numVertices);
-        fprintf(stderr, "Number of indices Pavillon: %d\n", numIndices);
-        fprintf(stderr, "Number of normals Pavillon : %d\n",numNormals);
-        fprintf(stderr, "Number of uvs Pavillon: %d\n", numUVs);
-    }
-    vertex_buffer_pavillon = shapesPavillon[0].mesh.positions;
-    index_buffer_pavillon = shapesPavillon[0].mesh.indices;
-    normal_buffer_pavillon = shapesPavillon[0].mesh.normals;
-    uv_buffer_pavillon = shapesPavillon[0].mesh.texcoords;
-
-
-    /*
-     Load Ground
-     */
-    err = tinyobj::LoadObj(shapesFloor, materialsFloor, inputfileFloor.c_str());
-
-    if (!err.empty()) {
-        fprintf(stderr, "Error loading obj File Pavillon!");
-      exit(1);
-    }
-    
-    if (MESH_DEBUG){
-        int numVertices = shapesFloor[0].mesh.positions.size();
-        int numIndices = shapesFloor[0].mesh.indices.size();
-        int numNormals = shapesFloor[0].mesh.normals.size();
-        int numUVS = shapesFloor[0].mesh.texcoords.size();
-        
-        fprintf(stderr, "Number of vertics Floor: %d \n", numVertices);
-        fprintf(stderr, "Number of indices Floor: %d\n", numIndices);
-        fprintf(stderr, "Number of normals Floor : %d\n",numNormals);
-        fprintf(stderr, "Number of uvs Floor: %d\n", numUVS);
-    }
-    vertex_buffer_floor = shapesFloor[0].mesh.positions;
-    index_buffer_floor = shapesFloor[0].mesh.indices;
-    normal_buffer_floor = shapesFloor[0].mesh.normals;
-    uv_buffer_floor = shapesFloor[0].mesh.texcoords;
-
+    object->vertex_buffer = shapes[0].mesh.positions;
+    object->index_buffer = shapes[0].mesh.indices;
+    object->normal_buffer = shapes[0].mesh.normals;
+    object->uv_buffer = shapes[0].mesh.texcoords;
 }
 
 
@@ -1384,11 +1301,31 @@ void LoadMesh(){
 *
 *******************************************************************/
 
+void InitializeWorldObject(WorldObject* obj){
+    obj = (WorldObject*) malloc(sizeof(WorldObject));
+}
+
+void InitializeBillboardObject(BillboardObject* obj){
+    obj =(BillboardObject*) malloc(sizeof(BillboardObject));
+}
+
 
 void Initialize(void)
 {   
+    
+    InitializeWorldObject(&Robot);
+    InitializeWorldObject(&Pavillon);
+    InitializeWorldObject(&Floor);
+    
+    InitializeBillboardObject(&Billboard);
+
+    
     // load the meshes
-    LoadMesh();
+    LoadMesh(&Robot, "models/ufo_rusty.obj");
+    LoadMesh(&Pavillon, "models/pavillon_metal.obj");
+    LoadMesh(&Floor, "models/ground_glyphs.obj");
+
+    setupBillboard();
     
     glClearColor(0.0f, 0.0f, 0.3f, 0.0);
 
@@ -1399,16 +1336,21 @@ void Initialize(void)
     /*Intel troubleshooting*/
     setupArrayObject();
 
+ 
+    
     /* Setup vertex, color, and index buffer objects */
-    SetupDataBuffers();
+    SetupDataBuffers(&Robot);
+    SetupDataBuffers(&Floor);
+    SetupDataBuffers(&Pavillon);
+    SetupDataBuffersBillboards(&Billboard);
 
     /* Setup Texture*/
-    SetupTexture(&TextureRobotID, TextureRobot, "textures/rustytexture.bmp");
-    SetupTexture(&TextureFloorID, TextureFloor, "textures/glyphfloor.bmp");
-    SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/bumpmaptest2.bmp");
-    SetupTexture(&TexturePavillonID, TexturePavillon, "textures/metalpavillon.bmp");
+    SetupTexture(&Robot.TextureID, Robot.TextureData, "textures/rustytexture.bmp");
+    SetupTexture(&Floor.TextureID, Floor.TextureData, "textures/glyphfloor.bmp");
+   // SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/bumpmaptest2.bmp");
+    SetupTexture(&Pavillon.TextureID, Pavillon.TextureData, "textures/metalpavillon.bmp");
 
-    SetupTexture(&TextureBillboardID, TextureBillboard, "textures/uvtemplate.bmp");
+    SetupTexture(&Billboard.TextureID, Billboard.TextureData, "textures/uvtemplate.bmp");
 
     
     /* Setup shaders and shader program */
