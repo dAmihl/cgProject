@@ -27,16 +27,8 @@ void main()
 		+ CameraUp_worldspace * squareVertices.y * BillboardSize.y;
 
 	gl_Position = VP * vec4(vertexPosition_worldspace, 1.0f);
-
-	// Or, if BillboardSize is in percentage of the screen size (1,1 for fullscreen) :
-	//vertexPosition_worldspace = particleCenter_wordspace;
-	//gl_Position = VP * vec4(vertexPosition_worldspace, 1.0f); // Get the screen-space position of the particle's center
-	//gl_Position /= gl_Position.w; // Here we have to do the perspective division ourselves.
-	//gl_Position.xy += squareVertices.xy * vec2(0.2, 0.05); // Move the vertex in directly screen space. No need for CameraUp/Right_worlspace here.
-	
-	// Or, if BillboardSize is in pixels : 
-	// Same thing, just use (ScreenSizeInPixels / BillboardSizeInPixels) instead of BillboardSizeInScreenPercentage.
-
+        
+        //gl_Position = vec4(vertexPosition_worldspace, 1.0f);
 
 	UVcoords = UV;
 }

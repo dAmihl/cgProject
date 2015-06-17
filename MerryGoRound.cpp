@@ -101,6 +101,22 @@ GLuint TextureFloorNormalMapID;
 TextureDataPtr TextureFloorNormalMap;
 
 
+typedef struct {
+    
+    std::vector<GLfloat> vertex_buffer;
+    std::vector<GLuint> index_buffer;
+    std::vector<GLfloat> normal_buffer;
+    std::vector<GLfloat> uv_buffer;
+    std::vector<GLfloat> tangent_buffer;
+    
+    GLuint VBO;
+    GLuint CBO;
+    GLuint NBO;
+    GLuint UVBO;
+    GLuint TBO;
+    
+} WorldObject;
+
 /* for the loaded OBJ */
 
 /* Arrays for holding vertex data of the model */
@@ -482,7 +498,8 @@ void DrawBillboard(GLuint VBO, GLuint UVBO, GLuint TextureID, glm::vec3 billboar
     
     glm::mat4 mView = ViewMatrix;
     glm::mat4 mProjection = ProjectionMatrix;
-    glm::mat4 PV = mProjection * mView;
+    glm::mat4 PV = mProjection * mView ;
+    
     
     // Vertex shader
     GLuint CameraRight_worldspace_ID  = glGetUniformLocation(ShaderProgramBillboard, "CameraRight_worldspace");
@@ -614,8 +631,9 @@ void Display()
 
         
     glUseProgram(ShaderProgramBillboard);
-    DrawBillboard(BILLBOARD_VBO, BILLBOARD_UVBO, TextureBillboardID, glm::vec3(0.0f, 3.0f, 20.0f), glm::vec2(10.0f, 10.0f));
-    
+    DrawBillboard(BILLBOARD_VBO, BILLBOARD_UVBO, TextureBillboardID, glm::vec3(0.0f, 5.0f, 50.0f), glm::vec2(5.0f, 5.0f));
+    DrawBillboard(BILLBOARD_VBO, BILLBOARD_UVBO, TextureBillboardID, glm::vec3(30.0f, 5.0f, 50.0f), glm::vec2(5.0f, 5.0f));
+
     
     /* Swap between front and back buffer */ 
     glutSwapBuffers();
@@ -850,36 +868,23 @@ void KeyboardUp(unsigned char key, int x, int y)
 }
 
 
+/****************************************************************
+ 
+ Camera Movement
+ * Handles the user input and moves the camera
+ 
+ ****************************************************************/
 
-
-
-
-/******************************************************************
-*
-* OnIdle
-*
-* 
-*
-*******************************************************************/
-
-void OnIdle()
-{
-    
-    computeDeltaTime();
-
-    if (cameraMode == CAMERA_FREE_MOVE){
+void CameraFreeMove(){
         glm::mat4 RotationMatrixAnimMouseX;
         glm::mat4 RotationMatrixAnimMouseY;
-        glm::mat4 RotationMatrixAnimMouseZ;
 	glm::mat4 TranslationMatrixMouse;
 	
         RotationMatrixAnimMouseX = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaY/deltaTime, glm::vec3(1.0f, 0.0f, 0.0f));
         RotationMatrixAnimMouseY = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaX/deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
-        RotationMatrixAnimMouseZ = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-              
-        ViewMatrix = RotationMatrixAnimMouseX * ViewMatrix;
-        ViewMatrix = RotationMatrixAnimMouseY * ViewMatrix;
-        ViewMatrix = RotationMatrixAnimMouseZ * ViewMatrix;
+
+        glm::mat4 RotationMatrixAnimMouse = RotationMatrixAnimMouseX * RotationMatrixAnimMouseY;
+        ViewMatrix = RotationMatrixAnimMouse * ViewMatrix;
         
         mouseDeltaY = 0;
         mouseDeltaX = 0;
@@ -889,7 +894,7 @@ void OnIdle()
         float camMoveY = 0;
         float camMoveZ = 0;
         
-        int camMoveSpeed = 1;
+        float camMoveSpeed = 0.5f;
         
         if (camMoveForward == GL_TRUE){
             camMoveZ = camMoveSpeed;
@@ -910,13 +915,11 @@ void OnIdle()
         TranslationMatrixMouse = glm::translate(glm::mat4(1.0f), glm::vec3(camMoveX, camMoveY, camMoveZ));
        
         ViewMatrix = TranslationMatrixMouse * ViewMatrix;
-    }// 1 4 5
-    // Camera Fixed Move active
-    else {
-     
-    if(animCamera) {
-        
-        float translationCameraX = 0.0f, translationCameraY = 0.0f, translationCameraZ = 0.0f;
+    
+}
+
+void CameraFixedMove(){
+    float translationCameraX = 0.0f, translationCameraY = 0.0f, translationCameraZ = 0.0f;
         TranslationMatrixCamera = glm::mat4(1.0f);
     /* Increment rotation angles and update matrix */
         if(axis == Xaxis)
@@ -944,12 +947,18 @@ void OnIdle()
         TranslationMatrixCamera = glm::translate(glm::mat4(1.0f), glm::vec3(translationCameraX, translationCameraY, translationCameraZ));
         ViewMatrix = TranslationMatrixCamera * RotationMatrixCamera * ViewMatrix;
 
-        }
-    }
-    
-    
-    if (animMerryGoRound){
-            /* SetUp Rotation matrices */
+        
+}
+
+
+/***********************************************
+ 
+ * Merry Go Round Animation
+ * computes the animation of the MerryGoRound
+ **********************************************/
+
+void MerryGoRoundAnimation(){
+    /* SetUp Rotation matrices */
         float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI);
 
         angle *= rotation_speed_factor;
@@ -961,8 +970,6 @@ void OnIdle()
         glm::mat4 RotationMatrixAnimBox2;
         glm::mat4 RotationMatrixAnimBox3;
         glm::mat4 RotationMatrixAnimBox4;
-
-
 
         /* Time dependent rotation */
         RotationMatrixAnimPavillon = glm::rotate(glm::mat4(1.0f), -angle/2, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -1005,12 +1012,43 @@ void OnIdle()
 
         PavillonModelMatrix = RotationMatrixAnimPavillon * InitialTransformPavillon;
         ModelMatrixFloor = InitialTransformFloor;
+        ModelMatrixFloor = glm::scale(ModelMatrixFloor, glm::vec3(2.0f, 2.0f, 2.0f));
         /* Apply model rotation; finally move cube down */    
         SuzanneMatrix1 = TranslateDownBox1 * UpDownTranslationBox1 * RotationMatrixAnimBox1 * InitialTransformBox1;
         SuzanneMatrix2 = TranslateDownBox2 * UpDownTranslationBox2 * RotationMatrixAnimBox2 * InitialTransformBox2;
         SuzanneMatrix3 = TranslateDownBox3 * UpDownTranslationBox3 * RotationMatrixAnimBox3 * InitialTransformBox3;
         SuzanneMatrix4 = TranslateDownBox4 * UpDownTranslationBox4 * RotationMatrixAnimBox4 * InitialTransformBox4;
 
+}
+
+
+
+/******************************************************************
+*
+* OnIdle
+*
+* 
+*
+*******************************************************************/
+
+void OnIdle()
+{
+    
+    computeDeltaTime();
+
+    if (cameraMode == CAMERA_FREE_MOVE){
+        CameraFreeMove();
+        }
+    // Camera Fixed Move active
+    else {
+        if(animCamera) {
+            CameraFixedMove();
+        }
+    }
+       
+    // if the animation is not paused
+    if (animMerryGoRound){
+        MerryGoRoundAnimation();
     }
     /* ---------------------------------------------------------------------------- */
 
@@ -1422,7 +1460,7 @@ void Initialize(void)
     float fovy = 45.0;
     float aspect = 1.0; 
     float nearPlane = 1.0; 
-    float farPlane = 50.0;
+    float farPlane = 100.0;
     ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane); 
 
     /* Set viewing transform */  
