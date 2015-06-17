@@ -57,85 +57,21 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+#include "DeltaTime.h"
 #include "LoadShader.h"   /* Provides loading function for shader code */
 #include "LoadTexture.h"
+#include "Objects.h"
+#include "CameraMovement.h"
 
 /*----------------------------------------------------------------*/
 /* Define handle to a vertex array object (only for MESA USE) */
 GLuint VAO;
-
-/* Define handle to a vertex buffer object */
-GLuint HORSEBOX_VBO;
-
-/* Define handle to a color buffer object */
-GLuint HORSEBOX_CBO; 
-
-/* Define handle to an index buffer object */
-GLuint HORSEBOX_IBO;
-
-
-/* Define handle to a vertex buffer object */
-GLuint WALL_VBO;
-
-/* Define handle to a color buffer object */
-GLuint WALL_CBO; 
-
-/* Define handle to an index buffer object */
-GLuint WALL_IBO;
 
 
 /* Variables for texture handling */
 GLuint TextureUniform;
 GLuint NormalMapUniform;
 
-GLuint TextureRobotID;
-TextureDataPtr TextureRobot;
-
-GLuint TexturePavillonID;
-TextureDataPtr TexturePavillon;
-
-GLuint TextureFloorID;
-TextureDataPtr TextureFloor;
-
-GLuint TextureFloorNormalMapID;
-TextureDataPtr TextureFloorNormalMap;
-
-
-typedef struct {
-    
-    std::vector<GLfloat> vertex_buffer;
-    std::vector<GLuint> index_buffer;
-    std::vector<GLfloat> normal_buffer;
-    std::vector<GLfloat> uv_buffer;
-    std::vector<GLfloat> tangent_buffer;
-    
-    GLuint VBO;
-    GLuint CBO;
-    GLuint NBO;
-    GLuint IBO;
-    GLuint UVBO;
-    GLuint TBO;
-    
-    TextureDataPtr TextureData;
-    GLuint TextureID;
-    
-} WorldObject;
-
-
-typedef struct {
-    
-    std::vector<GLfloat> vertex_buffer;
-    std::vector<GLfloat> uv_buffer;
-    std::vector<GLfloat> tangent_buffer;
-    
-    GLuint VBO;
-    GLuint UVBO;
-    GLuint TBO;
-    
-    TextureDataPtr TextureData;
-    GLuint TextureID;
-    
-} BillboardObject;
 
 WorldObject Robot;
 WorldObject Pavillon;
@@ -143,11 +79,12 @@ WorldObject Floor;
 
 BillboardObject Billboard;
 
+glm::mat4 ViewMatrix;
+glm::mat4 ProjectionMatrix;
+glm::mat4 PVMMatrix;
 
 /* Indices to vertex attributes; in this case positon and color */ 
 enum DataID {vPosition = 0, vUV = 1, vColor = 3, vNormals = 2}; 
-
-
 
 /* Strings for loading and storing shader code */
 static const char* VertexShaderString;
@@ -156,52 +93,16 @@ static const char* FragmentShaderString;
 GLuint ShaderProgramStandard;
 GLuint ShaderProgramBillboard;
 
-//glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 0.0f);
-
  GLuint PVMMatrixID;
  GLuint ViewMatrixID;
  GLuint ModelMatrixID;
- 
  
  GLuint LightSourcesID;
  GLuint LightColorsID;
  GLuint LightIntensitiesID;
  
  
- /*
-  The Billboard to be drawn
-  */
-
  
- GLuint BILLBOARD_VBO;
-  GLuint BILLBOARD_UVBO;
- TextureDataPtr TextureBillboard;
- GLuint TextureBillboardID;
- 
- 
- 
- void setupBillboard(){
-      
-    Billboard.vertex_buffer = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f,
-        -1.0f, 1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f
-     };
-    
-    
- 
-    Billboard.uv_buffer = {
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f
- };
- }
  
  
  /*
@@ -236,10 +137,6 @@ GLuint ShaderProgramBillboard;
       60, 30, 30, 30
   };
 
-  
-glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
-glm::mat4 ViewMatrix; /* Camera view matrix */ 
-glm::mat4 PVMMatrix;        /* Final combined transformation */
 
 float camera_disp = -25.0;
 float camera_aproach = 10.0;
@@ -247,17 +144,7 @@ float camera_aproach = 10.0;
 GLboolean animCamera = GL_TRUE; // if the camera is animated
 GLboolean animMerryGoRound = GL_TRUE; // if the merry go round is animated
 
-const int CAMERA_FREE_MOVE = 1;
-const int CAMERA_FIXED_MOVE = 0;
-int cameraMode = 0; // current camera mode
 
-/*
- Handles for the WASD Movement
- */
-GLboolean camMoveForward = GL_FALSE;
-GLboolean camMoveBack = GL_FALSE;
-GLboolean camMoveLeft = GL_FALSE;
-GLboolean camMoveRight = GL_FALSE;
 
 
 glm::mat4 ModelMatrixFloor; /* Model matrix for the floor entity*/
@@ -265,10 +152,10 @@ glm::mat4 InitialTransformFloor;
 /*
  Model matrix for each MerryGoRound object
  */
-glm::mat4 SuzanneMatrix1;
-glm::mat4 SuzanneMatrix2;
-glm::mat4 SuzanneMatrix3;
-glm::mat4 SuzanneMatrix4;
+glm::mat4 RobotMatrix1;
+glm::mat4 RobotMatrix2;
+glm::mat4 RobotMatrix3;
+glm::mat4 RobotMatrix4;
 
 /*
  Matrices for the MerryGoRound pavillon
@@ -328,15 +215,6 @@ int BOX3_CURRENT_UPDOWN_DIRECTION = -1;
 int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
 
-/*
- Handles for the Mouse Input
- */
-int MOUSE_OLD_X_POS = 0;
-int MOUSE_OLD_Y_POS = 0;
-
-int mouseDeltaX = 0;
-int mouseDeltaY = 0;
-
 
 /*
  Attributes of the MerryGoRound animation 
@@ -347,36 +225,35 @@ float updown_speed_factor = 1.0f;
 float zoom = 1.0;
 
 
-/* Transformation matrices for camera rotation */
-glm::mat4 TranslationMatrixCameraX;
-glm::mat4 TranslationMatrixCameraY;
-glm::mat4 TranslationMatrixCameraZ;
-glm::mat4 TranslationMatrixCamera;
-
-glm::mat4 RotationMatrixCameraX;
-glm::mat4 RotationMatrixCameraY;
-glm::mat4 RotationMatrixCameraZ;
-glm::mat4 RotationMatrixCamera;
-
-/* Variables for storing current rotation angles */
-double angleX, angleY, angleZ = 0.0f; 
-
-/* Indices to active rotation axes */
-enum {Xaxis=0, Yaxis=1, Zaxis=2};
-int axis = Yaxis;
-
-/* Indices to active triangle mesh */
-enum {Model1=0, Model2=1};
-int model = Model1; 
 
 
-/* variables for computing elapsed time since last render */
-int deltaTime = 0;
-int oldTimeSinceStart = 0;
 
-void computeDeltaTime();
-
-
+/*
+  Sets up the vertices and uv coordinates
+  * for a standard billboard
+  */
+ void SetupStandardBillboard(){
+      
+    Billboard.vertex_buffer = {
+        -1.0f, -1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f
+     };
+    
+    
+ 
+    Billboard.uv_buffer = {
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f
+    };
+ }
 
 
 /******************************************************************
@@ -392,9 +269,7 @@ void computeDeltaTime();
 
 
 void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 ModelMatrix, GLuint TextureID, GLuint NormalMapID){
-    
-    
-    
+       
     glm::mat4 mView = ViewMatrix;
     glm::mat4 mProjection = ProjectionMatrix;
     glm::mat4 PVM = mProjection * mView * ModelMatrix;
@@ -571,16 +446,6 @@ void SetupTexture(GLuint* TextureID, TextureDataPtr Texture, const char* filepat
 }
 
 
-/*
- Computes the time elapsed since last Display()
- */
-void computeDeltaTime(){
-    
-    int newTime = glutGet(GLUT_ELAPSED_TIME);
-    deltaTime = newTime - oldTimeSinceStart;
-    oldTimeSinceStart = newTime; 
-}
-
 
 void Display()
 {
@@ -590,12 +455,12 @@ void Display()
 
     glUseProgram(ShaderProgramStandard);
     /* Walls and Floor*/
-    DrawObject(Floor.VBO,  Floor.IBO, Floor.NBO,Floor.UVBO, ModelMatrixFloor, Floor.TextureID, TextureFloorNormalMapID);
+    DrawObject(Floor.VBO,  Floor.IBO, Floor.NBO,Floor.UVBO, ModelMatrixFloor, Floor.TextureID, 0);
 
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix1, Robot.TextureID, 0);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix2, Robot.TextureID, 0);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix3, Robot.TextureID, 0);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, SuzanneMatrix4, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix1, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix2, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix3, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix4, Robot.TextureID, 0);
     
     DrawObject(Pavillon.VBO,  Pavillon.IBO,Pavillon.NBO, Pavillon.UVBO,PavillonModelMatrix, Pavillon.TextureID, 0);
 
@@ -621,10 +486,6 @@ void Display()
 
 void Mouse(int button, int state, int x, int y) 
 {
-    // float correction_factor = 1 / 10;
-    
-    mouseDeltaX = x - MOUSE_OLD_X_POS;
-    mouseDeltaY = y - MOUSE_OLD_Y_POS;
 
     
     if(state == GLUT_DOWN) 
@@ -647,9 +508,7 @@ void Mouse(int button, int state, int x, int y)
 		break;
 	}
     }
-      
-    MOUSE_OLD_X_POS = x;
-    MOUSE_OLD_Y_POS = y;
+
 }
 
 
@@ -665,11 +524,7 @@ void Mouse(int button, int state, int x, int y)
 
 void MouseMove(int x, int y) 
 {    
-    mouseDeltaX = x - MOUSE_OLD_X_POS;
-    mouseDeltaY = y - MOUSE_OLD_Y_POS;
-    
-    MOUSE_OLD_X_POS = x;
-    MOUSE_OLD_Y_POS = y;
+    MouseMoveUpdate(x, y);
 }
 
 /************************************************
@@ -725,8 +580,7 @@ void Keyboard(unsigned char key, int x, int y)
 	// keys to manipulate the modle
 	// change speed and direction of rotation
 	case 'w':
-	    
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveForward = GL_TRUE;
+            if (cameraMode == CAMERA_FREE_MOVE) moveForward(GL_TRUE);
             else{
                 if (rotation_speed_factor < MAX_ROTATION_SPEED) rotation_speed_factor += 0.1;
                 if (updown_speed_factor < MAX_ROTATION_SPEED) updown_speed_factor += 0.1;
@@ -735,7 +589,7 @@ void Keyboard(unsigned char key, int x, int y)
 	    
 	case 's':
 	   
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveBack = GL_TRUE;
+            if (cameraMode == CAMERA_FREE_MOVE) moveBack(GL_TRUE);
             else{
                 if (rotation_speed_factor > 0) rotation_speed_factor -= 0.1;
                 if (updown_speed_factor > 0) updown_speed_factor -= 0.1;
@@ -743,7 +597,7 @@ void Keyboard(unsigned char key, int x, int y)
 	    break;
 	case 'a':
 	    
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveLeft = GL_TRUE;
+            if (cameraMode == CAMERA_FREE_MOVE) moveLeft(GL_TRUE);
             else{
                 rotation_direction = 1;
             }
@@ -751,7 +605,7 @@ void Keyboard(unsigned char key, int x, int y)
 	    
 	case 'd':
 	    
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveRight = GL_TRUE;
+            if (cameraMode == CAMERA_FREE_MOVE) moveRight(GL_TRUE);
             else{
                 rotation_direction = -1;
             }
@@ -820,104 +674,23 @@ void KeyboardUp(unsigned char key, int x, int y)
 	// keys to manipulate the modle
 	// change speed and direction of rotation
 	case 'w':
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveForward = GL_FALSE;
+            moveForward(GL_FALSE);
 	    break;
 	    
 	case 's':
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveBack = GL_FALSE;
+            moveBack(GL_FALSE);
 	    break;
 	case 'a':
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveLeft = GL_FALSE;
+            moveLeft(GL_FALSE);
 	    break;
 	    
 	case 'd':
-            if (cameraMode == CAMERA_FREE_MOVE) camMoveRight = GL_FALSE;
+            moveRight(GL_FALSE);
 	    break;
     }
 }
 
 
-/****************************************************************
- 
- Camera Movement
- * Handles the user input and moves the camera
- 
- ****************************************************************/
-
-void CameraFreeMove(){
-        glm::mat4 RotationMatrixAnimMouseX;
-        glm::mat4 RotationMatrixAnimMouseY;
-	glm::mat4 TranslationMatrixMouse;
-	
-        RotationMatrixAnimMouseX = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaY/deltaTime, glm::vec3(1.0f, 0.0f, 0.0f));
-        RotationMatrixAnimMouseY = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaX/deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
-
-        glm::mat4 RotationMatrixAnimMouse = RotationMatrixAnimMouseX * RotationMatrixAnimMouseY;
-        ViewMatrix = RotationMatrixAnimMouse * ViewMatrix;
-        
-        mouseDeltaY = 0;
-        mouseDeltaX = 0;
-        
-        /* WASD Movement*/
-        float camMoveX = 0;
-        float camMoveY = 0;
-        float camMoveZ = 0;
-        
-        float camMoveSpeed = 0.5f;
-        
-        if (camMoveForward == GL_TRUE){
-            camMoveZ = camMoveSpeed;
-        }
-        
-        if (camMoveBack == GL_TRUE){
-            camMoveZ = -camMoveSpeed;
-        }
-        
-        if (camMoveLeft == GL_TRUE){
-            camMoveX = camMoveSpeed;
-        }
-        
-        if (camMoveRight == GL_TRUE){
-            camMoveX = -camMoveSpeed;
-        }
-        
-        TranslationMatrixMouse = glm::translate(glm::mat4(1.0f), glm::vec3(camMoveX, camMoveY, camMoveZ));
-       
-        ViewMatrix = TranslationMatrixMouse * ViewMatrix;
-    
-}
-
-void CameraFixedMove(){
-    float translationCameraX = 0.0f, translationCameraY = 0.0f, translationCameraZ = 0.0f;
-        TranslationMatrixCamera = glm::mat4(1.0f);
-    /* Increment rotation angles and update matrix */
-        if(axis == Xaxis)
-	{
-  	    angleX = fmod(0.15 * deltaTime, 360.0);
-            double angleRad = (2 * M_PI / 360) * angleX;
-            translationCameraY =  -cos(angleRad) / 1.5f ;
-            RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(1.0f, 0.0f, 0.0f));
-	}
-	else if(axis == Yaxis)
-	{
-	    angleY = fmod( 0.15 * deltaTime, 360.0); 
-            double angleRad = (2 * M_PI / 360) * angleY;
-            translationCameraX =  cos(angleRad) /1.5f;
-            RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(0.0f, 1.0f, 0.0f));
-	}
-	else if(axis == Zaxis)
-	{			
-	    angleZ = fmod(0.15 * deltaTime, 360.0);
-            double angleRad = (2 * M_PI / 360) * angleZ;
-            RotationMatrixCamera = glm::rotate(glm::mat4(1.0f), (float)angleRad, glm::vec3(0.0f, 0.0f, 1.0f));
-	}
-      
-
-        TranslationMatrixCamera = glm::translate(glm::mat4(1.0f), glm::vec3(translationCameraX, translationCameraY, translationCameraZ));
-        ViewMatrix = TranslationMatrixCamera * RotationMatrixCamera * ViewMatrix;
-
-        
-}
 
 
 /***********************************************
@@ -983,10 +756,10 @@ void MerryGoRoundAnimation(){
         ModelMatrixFloor = InitialTransformFloor;
         ModelMatrixFloor = glm::scale(ModelMatrixFloor, glm::vec3(2.0f, 2.0f, 2.0f));
         /* Apply model rotation; finally move cube down */    
-        SuzanneMatrix1 = TranslateDownBox1 * UpDownTranslationBox1 * RotationMatrixAnimBox1 * InitialTransformBox1;
-        SuzanneMatrix2 = TranslateDownBox2 * UpDownTranslationBox2 * RotationMatrixAnimBox2 * InitialTransformBox2;
-        SuzanneMatrix3 = TranslateDownBox3 * UpDownTranslationBox3 * RotationMatrixAnimBox3 * InitialTransformBox3;
-        SuzanneMatrix4 = TranslateDownBox4 * UpDownTranslationBox4 * RotationMatrixAnimBox4 * InitialTransformBox4;
+        RobotMatrix1 = TranslateDownBox1 * UpDownTranslationBox1 * RotationMatrixAnimBox1 * InitialTransformBox1;
+        RobotMatrix2 = TranslateDownBox2 * UpDownTranslationBox2 * RotationMatrixAnimBox2 * InitialTransformBox2;
+        RobotMatrix3 = TranslateDownBox3 * UpDownTranslationBox3 * RotationMatrixAnimBox3 * InitialTransformBox3;
+        RobotMatrix4 = TranslateDownBox4 * UpDownTranslationBox4 * RotationMatrixAnimBox4 * InitialTransformBox4;
 
 }
 
@@ -1006,12 +779,12 @@ void OnIdle()
     computeDeltaTime();
 
     if (cameraMode == CAMERA_FREE_MOVE){
-        CameraFreeMove();
+        ViewMatrix = CameraFreeMove(ViewMatrix);
         }
     // Camera Fixed Move active
     else {
         if(animCamera) {
-            CameraFixedMove();
+           ViewMatrix = CameraFixedMove(ViewMatrix);
         }
     }
        
@@ -1325,7 +1098,7 @@ void Initialize(void)
     LoadMesh(&Pavillon, "models/pavillon_metal.obj");
     LoadMesh(&Floor, "models/ground_glyphs.obj");
 
-    setupBillboard();
+    SetupStandardBillboard();
     
     glClearColor(0.0f, 0.0f, 0.3f, 0.0);
 
@@ -1360,22 +1133,11 @@ void Initialize(void)
     InitializeStandardShaderID();
 
     /* Initialize matrices */
-   
     
-    TranslationMatrixCamera = glm::mat4(1.0f);
-    TranslationMatrixCameraX = glm::mat4(1.0f);
-    TranslationMatrixCameraY = glm::mat4(1.0f);
-    TranslationMatrixCameraZ = glm::mat4(1.0f);
-    
-    RotationMatrixCamera = glm::mat4(1.0f);
-    RotationMatrixCameraX = glm::mat4(1.0f);
-    RotationMatrixCameraY = glm::mat4(1.0f);
-    RotationMatrixCameraZ = glm::mat4(1.0f);
-    
-    SuzanneMatrix1 = glm::mat4(1.0f);
-    SuzanneMatrix2 = glm::mat4(1.0f);
-    SuzanneMatrix3 = glm::mat4(1.0f);
-    SuzanneMatrix4 = glm::mat4(1.0f);
+    RobotMatrix1 = glm::mat4(1.0f);
+    RobotMatrix2 = glm::mat4(1.0f);
+    RobotMatrix3 = glm::mat4(1.0f);
+    RobotMatrix4 = glm::mat4(1.0f);
     
     ModelMatrixFloor = glm::mat4(1.0f);
     

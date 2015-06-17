@@ -1,7 +1,7 @@
 CC = g++
 LD = gcc
 
-OBJ = MerryGoRound.o LoadShader.o Matrix.o StringExtra.o OBJParser.o List.o LoadTexture.o
+OBJ = MerryGoRound.o LoadShader.o LoadTexture.o CameraMovement.o DeltaTime.o
 TARGET = MerryGoRound
 #-Wextra
 CFLAGS = -g -Wall -std=c++0x
@@ -19,6 +19,9 @@ $(TARGET).o: $(TARGET).cpp
 # 
 $(BUILD_DIR)/%.o: %.c 
 	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
+
+$(BUILD_DIR)/%.o: %.cpp
+	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
 # 
 clean: 
 	rm -f $(BUILD_DIR)/*.o *.o $(TARGET) 
@@ -26,7 +29,7 @@ clean:
 .PHONY: clean
 
 # Dependencies 
-$(TARGET): $(BUILD_DIR)/LoadShader.o $(BUILD_DIR)/Matrix.o $(BUILD_DIR)/StringExtra.o $(BUILD_DIR)/OBJParser.o  $(BUILD_DIR)/List.o $(BUILD_DIR)/LoadTexture.o | $(BUILD_DIR)
+$(TARGET): $(BUILD_DIR)/LoadTexture.o $(BUILD_DIR)/LoadShader.o $(BUILD_DIR)/CameraMovement.o $(BUILD_DIR)/DeltaTime.o | $(BUILD_DIR)
 
 
 # Rules
