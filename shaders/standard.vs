@@ -12,6 +12,7 @@ const int numberLightSources = 4;
 // Output data ; will be interpolated for each fragment.
 out vec3 Position_worldspace;
 out vec3 Normal_cameraspace;
+out vec3 Normal_modelspace;
 out vec3 EyeDirection_cameraspace;
 out vec3 LightDirection_cameraspace[numberLightSources];
 out vec4 vColor;
@@ -45,5 +46,6 @@ void main(){
         vColor = vec4(Color.r, Color.g, Color.b, 1.0);
         UVcoords = UV;
         tangent = vTangent;
+        Normal_modelspace = vertexNormal_modelspace;
 }
 

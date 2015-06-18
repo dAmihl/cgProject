@@ -24,7 +24,7 @@
  *Prints number of vertices, indices and normals of the loaded obj mesh 
  * when set to 1
  */
-#define MESH_DEBUG 0
+#define MESH_DEBUG 1
 
 #define MAX_ROTATION_SPEED 0.5
 #define START_ROTATION_SPEED 0.05
@@ -209,6 +209,12 @@ int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
     TextureDataPtr TextureFloorNormalMap;
     GLuint TextureFloorNormalMapID;
+    
+    TextureDataPtr TextureRobotNormalMap;
+    GLuint TextureRobotNormalMapID;
+    
+    TextureDataPtr TexturePavillonNormalMap;
+    GLuint TexturePavillonNormalMapID;
 
 
 /*
@@ -254,6 +260,22 @@ void computeTangentForObject(WorldObject* obj){
         obj->tangent_buffer.push_back(tangent);
         obj->tangent_buffer.push_back(tangent);
 
+    }
+}
+
+void computeNormalsForObject(WorldObject* obj){
+ 
+    for ( uint i=0; i<obj->vertex_buffer.size(); i+=3){
+ 
+        // Shortcuts for vertices
+        glm::vec3 & v1 = obj->vertex_buffer[i+0];
+        glm::vec3 & v2 = obj->vertex_buffer[i+1];
+        glm::vec3 & v3 = obj->vertex_buffer[i+2];
+    
+        glm::vec3 normal = glm::normalize(glm::cross(v3 - v2, v1 - v2));
+        obj->normal_buffer.push_back(normal);
+        obj->normal_buffer.push_back(normal);
+        obj->normal_buffer.push_back(normal);
     }
 }
 
@@ -313,9 +335,7 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO, GLuint TBO,  gl
     glVertexAttribPointer(vNormals,3,GL_FLOAT,GL_FALSE,0,(void*)0);
     
     // Bind our texture in Texture Unit 0
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, TextureID);
-      
+   GLint TextureSampler;
     
     /*
      If a normal map is given, bind it to the normalMapSampler uniform
@@ -330,12 +350,22 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO, GLuint TBO,  gl
         glVertexAttribPointer(vTangent,2,GL_FLOAT,GL_FALSE,0,(void*)0);
          
          
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TextureID);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, NormalMapID);
-        NormalMapUniform  = glGetUniformLocation(ShaderProgramStandard, "normalMapSampler");
-        glUniform1i(NormalMapUniform, 1);
+       
+        TextureSampler  = glGetUniformLocation(ShaderProgramStandard, "textureSampler");
+        glUniform1i(TextureSampler, 0);
+        TextureSampler  = glGetUniformLocation(ShaderProgramStandard, "normalMapSampler");
+        glUniform1i(TextureSampler, 1);
+        
     }else{
         glUniform1i(NormalMapActiveFlag, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TextureID);
+        TextureSampler  = glGetUniformLocation(ShaderProgramStandard, "textureSampler");
+        glUniform1i(TextureSampler, 0);
     }
     
     glEnableVertexAttribArray(vUV);
@@ -496,12 +526,12 @@ void Display()
     /* Walls and Floor*/
     DrawObject(Floor.VBO,  Floor.IBO, Floor.NBO,Floor.UVBO, Floor.TBO, ModelMatrixFloor, Floor.TextureID, TextureFloorNormalMapID);
 
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO,  RobotMatrix1, Robot.TextureID, TextureFloorNormalMapID);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix2, Robot.TextureID, TextureFloorNormalMapID);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix3, Robot.TextureID, TextureFloorNormalMapID);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix4, Robot.TextureID, TextureFloorNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO,  RobotMatrix1, Robot.TextureID, TextureRobotNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix2, Robot.TextureID, TextureRobotNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix3, Robot.TextureID, TextureRobotNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix4, Robot.TextureID, TextureRobotNormalMapID);
     
-    DrawObject(Pavillon.VBO,  Pavillon.IBO,Pavillon.NBO, Pavillon.UVBO, Pavillon.TBO, PavillonModelMatrix, Pavillon.TextureID, TextureFloorNormalMapID);
+    DrawObject(Pavillon.VBO,  Pavillon.IBO,Pavillon.NBO, Pavillon.UVBO, Pavillon.TBO, PavillonModelMatrix, Pavillon.TextureID, TexturePavillonNormalMapID);
 
         
     glUseProgram(ShaderProgramBillboard);
@@ -1098,10 +1128,10 @@ void Initialize(void)
 
     
     // load the meshes
+   //LoadMesh(&Robot, "models/spider01.obj");
     LoadMesh(&Robot, "models/ufo_rusty.obj");
-    LoadMesh(&Pavillon, "models/pavillon_metal.obj");
-    LoadMesh(&Floor, "models/ground_glyphs.obj");
-
+    LoadMesh(&Pavillon, "models/pavillon_uv.obj");
+    LoadMesh(&Floor, "models/groundplane.obj");
     SetupStandardBillboard(&Billboard);
     
     glClearColor(0.0f, 0.0f, 0.3f, 0.0);
@@ -1112,11 +1142,15 @@ void Initialize(void)
 
     /*Intel troubleshooting*/
     setupArrayObject();
-
+/*
+    computeNormalsForObject(&Robot);
+    computeNormalsForObject(&Floor);
+    computeNormalsForObject(&Pavillon);
+   */ 
     /* Compute the vertex tangents*/
-    /*computeTangentForObject(&Robot);
+    computeTangentForObject(&Robot);
     computeTangentForObject(&Floor);
-    computeTangentForObject(&Pavillon);*/
+    computeTangentForObject(&Pavillon);
     
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers(&Robot);
@@ -1125,11 +1159,17 @@ void Initialize(void)
     SetupDataBuffersBillboards(&Billboard);
 
     /* Setup Texture*/
+    
     SetupTexture(&Robot.TextureID, Robot.TextureData, "textures/rustytexture.bmp");
-    SetupTexture(&Floor.TextureID, Floor.TextureData, "textures/glyphfloor.bmp");
-    SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/bumpmaptest2.bmp");
-    SetupTexture(&Pavillon.TextureID, Pavillon.TextureData, "textures/metalpavillon.bmp");
+    SetupTexture(&Floor.TextureID, Floor.TextureData, "textures/grass.bmp");
+    SetupTexture(&Pavillon.TextureID, Pavillon.TextureData, "textures/bunker_galvanized.bmp");
 
+    // Normal Maps
+    SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/normalmap_grass.bmp");
+    SetupTexture(&TextureRobotNormalMapID, TextureRobotNormalMap, "textures/normalmap_robot.bmp");
+    SetupTexture(&TexturePavillonNormalMapID, TexturePavillonNormalMap, "textures/normalmap_robot.bmp");
+
+    
     SetupTexture(&Billboard.TextureID, Billboard.TextureData, "textures/uvtemplate.bmp");
 
     
@@ -1151,12 +1191,13 @@ void Initialize(void)
     PavillonModelMatrix = glm::mat4(1.0f);
     InitialTransformPavillon = glm::mat4(1.0f);
     
+    
     glm::mat4 scalePavillon = glm::scale(glm::mat4(1.0f), glm::vec3(1.1f));
     glm::mat4 translatePavillon = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     
     InitialTransformPavillon = scalePavillon * translatePavillon;
-    glm::mat4 InitialScaleFloor = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
-    glm::mat4 InitialTranslateFloor = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    glm::mat4 InitialScaleFloor = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
+    glm::mat4 InitialTranslateFloor = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
     InitialTransformFloor = InitialScaleFloor * InitialTranslateFloor;
 
     
@@ -1224,7 +1265,7 @@ int main(int argc, char** argv)
     setupIntelMesaConfiguration();
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-    glutInitWindowSize(600, 600);
+    glutInitWindowSize(800, 800);
     glutInitWindowPosition(400, 400);
     glutCreateWindow("Round round round");
 
