@@ -9,9 +9,12 @@ in vec3 EyeDirection_cameraspace;
 in vec3 LightDirection_cameraspace[numberLightSources];
 in vec4 vColor;
 in vec2 UVcoords;
+in vec3 tangent;
 
 // Ouput data
 out vec4 color;
+
+uniform int normalMappingActive;
 
 // Values that stay constant for the whole mesh.
 uniform mat4 MV;
@@ -23,13 +26,18 @@ uniform sampler2D normalMapSampler;
 
 void main(){
  
-        vec3 Normal_bumpmap = (2*texture2D(normalMapSampler, UVcoords).rgb)-1;
-
-	// Normal of the computed fragment, in camera space
-	//vec3 n = normalize( Normal_bumpmap );
 	vec3 n = normalize( Normal_cameraspace );
 
-        
+        /*
+            Computes the bitangent by cross product of the tangent (given by code) and the normal in cameraspace  
+        */
+        if (normalMappingActive == 1){
+            vec3 t = tangent;
+            vec3 bt = cross(t, n);
+            vec3 texNormal = (2.0 * texture2D(normalMapSampler, UVcoords).xyz - vec3(1.0, 1.0, 1.0));
+            mat3 TBN = mat3(t, bt, n);
+            n = normalize(TBN * texNormal);
+        }
 
 	// Eye vector (towards the camera)
 	vec3 E = normalize(EyeDirection_cameraspace);
@@ -40,6 +48,9 @@ void main(){
         vec3 SpecularColor = vec3(0.3,0.3,0.3);
         vec3 tmpColor = vec3(0,0,0);
 
+        /*
+            Compute light color for each light source
+        */
         for (int i = 0; i < numberLightSources; i++){
             vec3 lightCol = LightColor[i];
             float intensity = LightIntensity[i];

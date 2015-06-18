@@ -84,7 +84,7 @@ glm::mat4 ProjectionMatrix;
 glm::mat4 PVMMatrix;
 
 /* Indices to vertex attributes; in this case positon and color */ 
-enum DataID {vPosition = 0, vUV = 1, vColor = 3, vNormals = 2}; 
+enum DataID {vPosition = 0, vUV = 1, vColor = 3, vNormals = 2, vTangent = 4}; 
 
 /* Strings for loading and storing shader code */
 static const char* VertexShaderString;
@@ -207,6 +207,8 @@ int BOX2_CURRENT_UPDOWN_DIRECTION = 1;
 int BOX3_CURRENT_UPDOWN_DIRECTION = -1;
 int BOX4_CURRENT_UPDOWN_DIRECTION = -1;
 
+    TextureDataPtr TextureFloorNormalMap;
+    GLuint TextureFloorNormalMapID;
 
 
 /*
@@ -217,6 +219,43 @@ int rotation_direction = 1;
 float updown_speed_factor = 1.0f;
 
 
+/*
+ * Computes the tangent for a world object
+ * Source: http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/#Computing_the_tangents_and_bitangents
+ */
+
+void computeTangentForObject(WorldObject* obj){
+
+    for ( uint i=0; i<obj->vertex_buffer.size(); i+=3){
+ 
+        // Shortcuts for vertices
+        glm::vec3 & v0 = obj->vertex_buffer[i+0];
+        glm::vec3 & v1 = obj->vertex_buffer[i+1];
+        glm::vec3 & v2 = obj->vertex_buffer[i+2];
+
+        // Shortcuts for UVs
+        glm::vec2 & uv0 = obj->uv_buffer[i+0];
+        glm::vec2 & uv1 = obj->uv_buffer[i+1];
+        glm::vec2 & uv2 = obj->uv_buffer[i+2];
+
+        // Edges of the triangle : postion delta
+        glm::vec3 deltaPos1 = v1-v0;
+        glm::vec3 deltaPos2 = v2-v0;
+
+        // UV delta
+        glm::vec2 deltaUV1 = uv1-uv0;
+        glm::vec2 deltaUV2 = uv2-uv0;
+        
+        float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+        glm::vec3 tangent = (deltaPos1 * deltaUV2.y   - deltaPos2 * deltaUV1.y)*r;
+        //glm::vec3 bitangent = (deltaPos2 * deltaUV1.x   - deltaPos1 * deltaUV2.x)*r;
+        
+        obj->tangent_buffer.push_back(tangent);
+        obj->tangent_buffer.push_back(tangent);
+        obj->tangent_buffer.push_back(tangent);
+
+    }
+}
 
 
 
@@ -258,7 +297,7 @@ float updown_speed_factor = 1.0f;
 *******************************************************************/
 
 
-void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 ModelMatrix, GLuint TextureID, GLuint NormalMapID){
+void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO, GLuint TBO,  glm::mat4 ModelMatrix, GLuint TextureID, GLuint NormalMapID){
        
     glm::mat4 mView = ViewMatrix;
     glm::mat4 mProjection = ProjectionMatrix;
@@ -276,24 +315,33 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 Mode
     // Bind our texture in Texture Unit 0
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, TextureID);
-    TextureUniform  = glGetUniformLocation(ShaderProgramStandard, "textureSampler");
-    glUniform1i(TextureUniform, 0);
-    
+      
     
     /*
      If a normal map is given, bind it to the normalMapSampler uniform
      */
-     if (NormalMapID != 0){
+    GLuint NormalMapActiveFlag  = glGetUniformLocation(ShaderProgramStandard, "normalMappingActive");
+    if (NormalMapID != 0){
+             
+        glUniform1i(NormalMapActiveFlag, 1);
+         
+        glEnableVertexAttribArray(vTangent);
+        glBindBuffer(GL_ARRAY_BUFFER, TBO);
+        glVertexAttribPointer(vTangent,2,GL_FLOAT,GL_FALSE,0,(void*)0);
+         
+         
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, NormalMapID);
         NormalMapUniform  = glGetUniformLocation(ShaderProgramStandard, "normalMapSampler");
         glUniform1i(NormalMapUniform, 1);
+    }else{
+        glUniform1i(NormalMapActiveFlag, 0);
     }
     
     glEnableVertexAttribArray(vUV);
     glBindBuffer(GL_ARRAY_BUFFER, UVBO);
-    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(vUV,2,GL_FLOAT,GL_FALSE,0,(void*)0);
+
                 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     
@@ -301,7 +349,7 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 Mode
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
     
  
- /* Associate program with shader matrices */
+    /* Associate program with shader matrices */
  
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, glm::value_ptr(mView));
@@ -324,6 +372,7 @@ void DrawObject(GLuint VBO, GLuint IBO, GLuint NBO, GLuint UVBO,  glm::mat4 Mode
     glDisableVertexAttribArray(vPosition);
     glDisableVertexAttribArray(vNormals);   
     glDisableVertexAttribArray(vUV);
+    glDisableVertexAttribArray(vTangent);
 }
 
 
@@ -445,14 +494,14 @@ void Display()
 
     glUseProgram(ShaderProgramStandard);
     /* Walls and Floor*/
-    DrawObject(Floor.VBO,  Floor.IBO, Floor.NBO,Floor.UVBO, ModelMatrixFloor, Floor.TextureID, 0);
+    DrawObject(Floor.VBO,  Floor.IBO, Floor.NBO,Floor.UVBO, Floor.TBO, ModelMatrixFloor, Floor.TextureID, TextureFloorNormalMapID);
 
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix1, Robot.TextureID, 0);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix2, Robot.TextureID, 0);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix3, Robot.TextureID, 0);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, RobotMatrix4, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO,  RobotMatrix1, Robot.TextureID, TextureFloorNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix2, Robot.TextureID, TextureFloorNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix3, Robot.TextureID, TextureFloorNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix4, Robot.TextureID, TextureFloorNormalMapID);
     
-    DrawObject(Pavillon.VBO,  Pavillon.IBO,Pavillon.NBO, Pavillon.UVBO,PavillonModelMatrix, Pavillon.TextureID, 0);
+    DrawObject(Pavillon.VBO,  Pavillon.IBO,Pavillon.NBO, Pavillon.UVBO, Pavillon.TBO, PavillonModelMatrix, Pavillon.TextureID, TextureFloorNormalMapID);
 
         
     glUseProgram(ShaderProgramBillboard);
@@ -803,11 +852,11 @@ void SetupDataBuffers(WorldObject* object)
     
     glGenBuffers(1, &object->VBO);
     glBindBuffer(GL_ARRAY_BUFFER, object->VBO);
-    glBufferData(GL_ARRAY_BUFFER, object->vertex_buffer.size()*sizeof(GLfloat), &object->vertex_buffer[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, object->vertex_buffer.size()*sizeof(glm::vec3), &object->vertex_buffer[0], GL_STATIC_DRAW);
     
     glGenBuffers(1, &object->NBO);
     glBindBuffer(GL_ARRAY_BUFFER, object->NBO);
-    glBufferData(GL_ARRAY_BUFFER, object->normal_buffer.size()*sizeof(GLfloat), &object->normal_buffer[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, object->normal_buffer.size()*sizeof(glm::vec3), &object->normal_buffer[0], GL_STATIC_DRAW);
 
     
     glGenBuffers(1, &object->IBO);
@@ -816,7 +865,11 @@ void SetupDataBuffers(WorldObject* object)
  
     glGenBuffers(1, &object->UVBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->UVBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, object->uv_buffer.size()*sizeof(GLfloat), &object->uv_buffer[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, object->uv_buffer.size()*sizeof(glm::vec2), &object->uv_buffer[0], GL_STATIC_DRAW);
+ 
+    glGenBuffers(1, &object->TBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->TBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, object->tangent_buffer.size()*sizeof(glm::vec3), &object->tangent_buffer[0], GL_STATIC_DRAW);
  
 }
 
@@ -1002,10 +1055,17 @@ void LoadMesh(WorldObject* object, const char* path){
         fprintf(stderr, "Number of normals : %d\n",numNormals);
         fprintf(stderr, "Nuber of uvs: %d\n", numUVs);
     }
-    object->vertex_buffer = shapes[0].mesh.positions;
+    
+    for (uint i = 0; i < shapes[0].mesh.positions.size(); i+=3){
+        object->vertex_buffer.push_back(glm::vec3(shapes[0].mesh.positions[i+0], shapes[0].mesh.positions[i+1], shapes[0].mesh.positions[i+2]));
+    }
     object->index_buffer = shapes[0].mesh.indices;
-    object->normal_buffer = shapes[0].mesh.normals;
-    object->uv_buffer = shapes[0].mesh.texcoords;
+    for (uint i = 0; i < shapes[0].mesh.normals.size(); i+=3){
+        object->normal_buffer.push_back(glm::vec3(shapes[0].mesh.normals[i+0], shapes[0].mesh.normals[i+1], shapes[0].mesh.normals[i+2]));
+    }
+    for (uint i = 0; i < shapes[0].mesh.texcoords.size(); i+=2){
+        object->uv_buffer.push_back(glm::vec2(shapes[0].mesh.texcoords[i+0], shapes[0].mesh.texcoords[i+1]));
+    }
 }
 
 
@@ -1053,6 +1113,11 @@ void Initialize(void)
     /*Intel troubleshooting*/
     setupArrayObject();
 
+    /* Compute the vertex tangents*/
+    /*computeTangentForObject(&Robot);
+    computeTangentForObject(&Floor);
+    computeTangentForObject(&Pavillon);*/
+    
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers(&Robot);
     SetupDataBuffers(&Floor);
@@ -1062,7 +1127,7 @@ void Initialize(void)
     /* Setup Texture*/
     SetupTexture(&Robot.TextureID, Robot.TextureData, "textures/rustytexture.bmp");
     SetupTexture(&Floor.TextureID, Floor.TextureData, "textures/glyphfloor.bmp");
-   // SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/bumpmaptest2.bmp");
+    SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/bumpmaptest2.bmp");
     SetupTexture(&Pavillon.TextureID, Pavillon.TextureData, "textures/metalpavillon.bmp");
 
     SetupTexture(&Billboard.TextureID, Billboard.TextureData, "textures/uvtemplate.bmp");

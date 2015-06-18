@@ -17,11 +17,11 @@ extern "C" {
  */
 typedef struct {
     
-    std::vector<GLfloat> vertex_buffer;
+    std::vector<glm::vec3> vertex_buffer;
     std::vector<GLuint> index_buffer;
-    std::vector<GLfloat> normal_buffer;
-    std::vector<GLfloat> uv_buffer;
-    std::vector<GLfloat> tangent_buffer;
+    std::vector<glm::vec3> normal_buffer;
+    std::vector<glm::vec2> uv_buffer;
+    std::vector<glm::vec3> tangent_buffer;
     
     GLuint VBO;
     GLuint CBO;
