@@ -234,17 +234,18 @@ float updown_speed_factor = 1.0f;
 
 void computeTangentForObject(WorldObject* obj){
 
-    for ( uint i=0; i<obj->vertex_buffer.size(); i+=3){
+    obj->tangent_buffer.clear();
+    obj->tangent_buffer.resize(obj->vertex_buffer.size(), glm::vec3(0,0,0));
+    
+    for ( uint i=0; i<obj->index_buffer.size(); i+=3){
  
-        // Shortcuts for vertices
-        glm::vec3 & v0 = obj->vertex_buffer[i+0];
-        glm::vec3 & v1 = obj->vertex_buffer[i+1];
-        glm::vec3 & v2 = obj->vertex_buffer[i+2];
+        glm::vec3 & v0 = obj->vertex_buffer[obj->index_buffer[i+0]];
+        glm::vec3 & v1 = obj->vertex_buffer[obj->index_buffer[i+1]];
+        glm::vec3 & v2 = obj->vertex_buffer[obj->index_buffer[i+2]];
 
-        // Shortcuts for UVs
-        glm::vec2 & uv0 = obj->uv_buffer[i+0];
-        glm::vec2 & uv1 = obj->uv_buffer[i+1];
-        glm::vec2 & uv2 = obj->uv_buffer[i+2];
+        glm::vec2 & uv0 = obj->uv_buffer[obj->index_buffer[i+0]];
+        glm::vec2 & uv1 = obj->uv_buffer[obj->index_buffer[i+1]];
+        glm::vec2 & uv2 = obj->uv_buffer[obj->index_buffer[i+2]];
 
         // Edges of the triangle : postion delta
         glm::vec3 deltaPos1 = v1-v0;
@@ -258,27 +259,37 @@ void computeTangentForObject(WorldObject* obj){
         glm::vec3 tangent = (deltaPos1 * deltaUV2.y   - deltaPos2 * deltaUV1.y)*r;
         //glm::vec3 bitangent = (deltaPos2 * deltaUV1.x   - deltaPos1 * deltaUV2.x)*r;
         
-        obj->tangent_buffer.push_back(tangent);
-        obj->tangent_buffer.push_back(tangent);
-        obj->tangent_buffer.push_back(tangent);
+        obj->tangent_buffer[obj->index_buffer[i+0]] += tangent;
+        obj->tangent_buffer[obj->index_buffer[i+1]] += tangent;
+        obj->tangent_buffer[obj->index_buffer[i+2]] += tangent;
+        
 
+    }
+    
+    for(uint i = 0; i < obj->tangent_buffer.size(); i++){
+        obj->tangent_buffer[i] = glm::normalize(obj->tangent_buffer[i]);
     }
 }
 
 void computeNormalsForObject(WorldObject* obj){
- 
-    for ( uint i=0; i<obj->vertex_buffer.size(); i+=3){
+    obj->normal_buffer.clear();
+    obj->normal_buffer.resize(obj->vertex_buffer.size(), glm::vec3(0,0,0));
+    for ( uint i=0; i<obj->index_buffer.size(); i+=3){
  
         // Shortcuts for vertices
-        glm::vec3 & v1 = obj->vertex_buffer[i+0];
-        glm::vec3 & v2 = obj->vertex_buffer[i+1];
-        glm::vec3 & v3 = obj->vertex_buffer[i+2];
+        glm::vec3 & v1 = obj->vertex_buffer[obj->index_buffer[i+0]];
+        glm::vec3 & v2 = obj->vertex_buffer[obj->index_buffer[i+1]];
+        glm::vec3 & v3 = obj->vertex_buffer[obj->index_buffer[i+2]];
     
         glm::vec3 normal = glm::normalize(glm::cross(v3 - v2, v1 - v2));
-        obj->normal_buffer.push_back(normal);
-        obj->normal_buffer.push_back(normal);
-        obj->normal_buffer.push_back(normal);
+        obj->normal_buffer[obj->index_buffer[i+0]] += normal;
+        obj->normal_buffer[obj->index_buffer[i+1]] += normal;
+        obj->normal_buffer[obj->index_buffer[i+2]] += normal;
     }
+    for(uint i = 0; i < obj->vertex_buffer.size(); i++){
+        obj->normal_buffer[i] = glm::normalize(obj->normal_buffer[i]);
+    }
+    
 }
 
 
@@ -455,7 +466,7 @@ void DrawBillboard(GLuint VBO, GLuint UVBO, GLuint TextureID, glm::vec3 billboar
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
     
     /* Issue draw command, using indexed triangle list */
-    glDrawElements(GL_TRIANGLES, size/sizeof(GLuint), GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, size/sizeof(GLuint));
     
     /* Disable attributes */
     glDisableVertexAttribArray(vPosition);
@@ -1098,9 +1109,9 @@ void LoadMesh(WorldObject* object, const char* path){
         object->vertex_buffer.push_back(glm::vec3(shapes[0].mesh.positions[i+0], shapes[0].mesh.positions[i+1], shapes[0].mesh.positions[i+2]));
     }
     object->index_buffer = shapes[0].mesh.indices;
-    for (uint i = 0; i < shapes[0].mesh.normals.size(); i+=3){
+    /*for (uint i = 0; i < shapes[0].mesh.normals.size(); i+=3){
         object->normal_buffer.push_back(glm::vec3(shapes[0].mesh.normals[i+0], shapes[0].mesh.normals[i+1], shapes[0].mesh.normals[i+2]));
-    }
+    }*/
     for (uint i = 0; i < shapes[0].mesh.texcoords.size(); i+=2){
         object->uv_buffer.push_back(glm::vec2(shapes[0].mesh.texcoords[i+0], shapes[0].mesh.texcoords[i+1]));
     }
@@ -1138,7 +1149,7 @@ void Initialize(void)
     // load the meshes
    //LoadMesh(&Robot, "models/spider01.obj");
     LoadMesh(&Robot, "models/ufo_new.obj");
-    LoadMesh(&Pavillon, "models/pavillon_uv.obj");
+    LoadMesh(&Pavillon, "models/pavillon_new.obj");
     LoadMesh(&Floor, "models/groundplane.obj");
     SetupStandardBillboard(&Billboard);
     
@@ -1154,11 +1165,11 @@ void Initialize(void)
 
     /*Intel troubleshooting*/
     setupArrayObject();
-/*
+
     computeNormalsForObject(&Robot);
     computeNormalsForObject(&Floor);
     computeNormalsForObject(&Pavillon);
-   */ 
+    
     /* Compute the vertex tangents*/
     computeTangentForObject(&Robot);
     computeTangentForObject(&Floor);
@@ -1179,7 +1190,7 @@ void Initialize(void)
     // Normal Maps
     SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/normalmap_grass.bmp");
     SetupTexture(&TextureRobotNormalMapID, TextureRobotNormalMap, "textures/normalmap_robot.bmp");
-    SetupTexture(&TexturePavillonNormalMapID, TexturePavillonNormalMap, "textures/normalmap_robot.bmp");
+    SetupTexture(&TexturePavillonNormalMapID, TexturePavillonNormalMap, "textures/bumpmaptest.bmp");
 
     
     SetupTexture(&Billboard.TextureID, Billboard.TextureData, "textures/billboard_palm.png");
@@ -1204,7 +1215,7 @@ void Initialize(void)
     InitialTransformPavillon = glm::mat4(1.0f);
     
     
-    glm::mat4 scalePavillon = glm::scale(glm::mat4(1.0f), glm::vec3(1.1f));
+    glm::mat4 scalePavillon = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.1f, 1.5f));
     glm::mat4 translatePavillon = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     
     InitialTransformPavillon = scalePavillon * translatePavillon;
@@ -1233,10 +1244,10 @@ void Initialize(void)
 			     glm::vec3(0,1,0) );  /* Up vector */
     
     
-    TranslateOriginBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(2, BOX1_START_POSITION_Y, 2));
-    TranslateOriginBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(-2, BOX2_START_POSITION_Y, -2));
-    TranslateOriginBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(-2, BOX3_START_POSITION_Y, 2));
-    TranslateOriginBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(2, BOX4_START_POSITION_Y, -2));
+    TranslateOriginBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(4, BOX1_START_POSITION_Y, 4));
+    TranslateOriginBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(-4, BOX2_START_POSITION_Y, -4));
+    TranslateOriginBox3 = glm::translate(glm::mat4(1.0f), glm::vec3(-4, BOX3_START_POSITION_Y, 4));
+    TranslateOriginBox4 = glm::translate(glm::mat4(1.0f), glm::vec3(4, BOX4_START_POSITION_Y, -4));
 
     TranslateDownBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
     TranslateDownBox2 = glm::translate(glm::mat4(1.0f), glm::vec3(0, -sqrtf(sqrtf(2.0) * 1.0), 0 ));
