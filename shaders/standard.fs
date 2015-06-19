@@ -50,6 +50,7 @@ void main(){
         vec3 AmbientColor = 0.4f * DiffuseColor;
         vec3 SpecularColor = vec3(0.5,0.5,0.5);
         vec3 tmpColor = vec3(0,0,0);
+        float alpha = texture2D( textureSampler, UVcoords ).a;
 
         /*
             Compute light color for each light source
@@ -68,5 +69,5 @@ void main(){
         }
 
         tmpColor = tmpColor + AmbientColor;
-        color = vec4(tmpColor.x,tmpColor.y, tmpColor.z, 1.0f);
+        color = vec4(tmpColor.x,tmpColor.y, tmpColor.z, alpha);
 }

@@ -299,12 +299,12 @@ void computeNormalsForObject(WorldObject* obj){
      };
  
     billboard->uv_buffer = {
-        0.0f, 0.0f,
         1.0f, 1.0f,
-        0.0f, 1.0f,
         0.0f, 0.0f,
+        1.0f, 0.0f,
         1.0f, 1.0f,
-        1.0f, 0.0f
+        0.0f, 0.0f,
+        0.0f, 1.0f
     };
  }
 
@@ -480,8 +480,8 @@ void SetupTexture(GLuint* TextureID, TextureDataPtr Texture, const char* filepat
     Texture = (TextureDataPtr) malloc(sizeof(TextureDataPtr));
 
     Texture->data = SOIL_load_image(filepath, &Texture->width, &Texture->height, 0, SOIL_LOAD_RGBA);
-    //int success = LoadTexture(filepath, Texture);
-    if (Texture->data == 0)
+
+    if (Texture->data == NULL)
     {
         printf("Error loading texture. Exiting.\n");
 	exit(-1);
@@ -531,16 +531,19 @@ void Display()
     /* Walls and Floor*/
     DrawObject(Floor.VBO,  Floor.IBO, Floor.NBO,Floor.UVBO, Floor.TBO, ModelMatrixFloor, Floor.TextureID, TextureFloorNormalMapID);
 
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO,  RobotMatrix1, Robot.TextureID, TextureRobotNormalMapID);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix2, Robot.TextureID, TextureRobotNormalMapID);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix3, Robot.TextureID, TextureRobotNormalMapID);
-    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix4, Robot.TextureID, TextureRobotNormalMapID);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO,  RobotMatrix1, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix2, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix3, Robot.TextureID, 0);
+    DrawObject(Robot.VBO,  Robot.IBO,Robot.NBO, Robot.UVBO, Robot.TBO, RobotMatrix4, Robot.TextureID, 0);
     
     DrawObject(Pavillon.VBO,  Pavillon.IBO,Pavillon.NBO, Pavillon.UVBO, Pavillon.TBO, PavillonModelMatrix, Pavillon.TextureID, TexturePavillonNormalMapID);
 
         
     glUseProgram(ShaderProgramBillboard);
-    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(0.0f, 5.0f, 50.0f), glm::vec2(5.0f, 5.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(20.0f, 2.0f, 20.0f), glm::vec2(5.0f, 8.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(20.0f, 2.0f, -20.0f), glm::vec2(5.0f, 8.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(-20.0f, 2.0f, 20.0f), glm::vec2(5.0f, 8.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(-20.0f, 2.0f, -20.0f), glm::vec2(5.0f, 8.0f));
 
     
     /* Swap between front and back buffer */ 
@@ -1134,13 +1137,17 @@ void Initialize(void)
     
     // load the meshes
    //LoadMesh(&Robot, "models/spider01.obj");
-    LoadMesh(&Robot, "models/ufo_rusty.obj");
+    LoadMesh(&Robot, "models/ufo_new.obj");
     LoadMesh(&Pavillon, "models/pavillon_uv.obj");
     LoadMesh(&Floor, "models/groundplane.obj");
     SetupStandardBillboard(&Billboard);
     
-    glClearColor(0.0f, 0.0f, 0.3f, 0.0);
+    glClearColor(0.3f, 0.3f, 0.8f, 0.0);
 
+    /* Enable blending*/
+    glEnable(GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     /* Enable depth testing */
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);    
@@ -1175,7 +1182,7 @@ void Initialize(void)
     SetupTexture(&TexturePavillonNormalMapID, TexturePavillonNormalMap, "textures/normalmap_robot.bmp");
 
     
-    SetupTexture(&Billboard.TextureID, Billboard.TextureData, "textures/uvtemplate.bmp");
+    SetupTexture(&Billboard.TextureID, Billboard.TextureData, "textures/billboard_palm.png");
 
     
     /* Setup shaders and shader program */
