@@ -22,7 +22,7 @@
 struct TextureDataStruct
 {
     unsigned char *data;
-    unsigned int width, height;
+    int width, height;
 };
 
 typedef TextureDataStruct* TextureDataPtr;

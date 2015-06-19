@@ -63,6 +63,8 @@
 #include "Objects.h"
 #include "CameraMovement.h"
 
+#include "SOIL.h"
+
 /*----------------------------------------------------------------*/
 /* Define handle to a vertex array object (only for MESA USE) */
 GLuint VAO;
@@ -470,13 +472,16 @@ void DrawBillboard(GLuint VBO, GLuint UVBO, GLuint TextureID, glm::vec3 billboar
 *
 *******************************************************************/
 
+
+
 void SetupTexture(GLuint* TextureID, TextureDataPtr Texture, const char* filepath)
 {	
     /* Allocate texture container */
     Texture = (TextureDataPtr) malloc(sizeof(TextureDataPtr));
 
-    int success = LoadTexture(filepath, Texture);
-    if (!success)
+    Texture->data = SOIL_load_image(filepath, &Texture->width, &Texture->height, 0, SOIL_LOAD_RGBA);
+    //int success = LoadTexture(filepath, Texture);
+    if (Texture->data == 0)
     {
         printf("Error loading texture. Exiting.\n");
 	exit(-1);
@@ -491,11 +496,11 @@ void SetupTexture(GLuint* TextureID, TextureDataPtr Texture, const char* filepat
     /* Load texture image into memory */
     glTexImage2D(GL_TEXTURE_2D,     /* Target texture */
 		 0,                 /* Base level */
-		 GL_RGB,            /* Each element is RGB triple */ 
+		 GL_RGBA,            /* Each element is RGB triple */ 
 		 Texture->width,    /* Texture dimensions */ 
                  Texture->height, 
 		 0,                 /* Border should be zero */
-		 GL_BGR,            /* Data storage format for BMP file */
+		 GL_RGBA,            /* Data storage format for BMP file */
 		 GL_UNSIGNED_BYTE,  /* Type of pixel data, one byte per channel */
 		 Texture->data);    /* Pointer to image data  */
  

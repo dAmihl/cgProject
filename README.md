@@ -16,6 +16,10 @@ GAUGLER Benjamin
 We are using the external OBJ-Loader "TinyOBJLoader": http://syoyo.github.io/tinyobjloader/
 
 The fragment and vertex shaders are built with help of http://www.opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/http://www.opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/
+
+Texture Loading:
+For the texture loading, we use the free SOIL (Simple OpenGL Image Library). http://www.lonesock.net/soil.html
+
 ## Controls
 
 Key '1': Activate fixed camera movement.
