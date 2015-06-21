@@ -551,10 +551,10 @@ void Display()
 
         
     glUseProgram(ShaderProgramBillboard);
-    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(20.0f, 2.0f, 20.0f), glm::vec2(5.0f, 8.0f));
-    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(20.0f, 2.0f, -20.0f), glm::vec2(5.0f, 8.0f));
-    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(-20.0f, 2.0f, 20.0f), glm::vec2(5.0f, 8.0f));
-    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(-20.0f, 2.0f, -20.0f), glm::vec2(5.0f, 8.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(20.0f, 5.0f, 20.0f), glm::vec2(5.0f, 8.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(20.0f, 5.0f, -20.0f), glm::vec2(5.0f, 8.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(-20.0f, 5.0f, 20.0f), glm::vec2(5.0f, 8.0f));
+    DrawBillboard(Billboard.VBO, Billboard.UVBO, Billboard.TextureID, glm::vec3(-20.0f, 5.0f, -20.0f), glm::vec2(5.0f, 8.0f));
 
     
     /* Swap between front and back buffer */ 
@@ -749,7 +749,6 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
     }
 
-    glutPostRedisplay();
 }
 
 
@@ -1239,8 +1238,8 @@ void Initialize(void)
     ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane); 
 
     /* Set viewing transform */  
-    ViewMatrix = glm::lookAt(glm::vec3(0,0,-10),    /* Eye vector */
-			     glm::vec3(0,0,0),     /* Viewing center */
+    ViewMatrix = glm::lookAt(glm::vec3(0,5,-20),    /* Eye vector */
+			     glm::vec3(0,5,0),     /* Viewing center */
 			     glm::vec3(0,1,0) );  /* Up vector */
     
     
