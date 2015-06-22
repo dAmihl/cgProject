@@ -24,7 +24,7 @@
  *Prints number of vertices, indices and normals of the loaded obj mesh 
  * when set to 1
  */
-#define MESH_DEBUG 0;
+#define MESH_DEBUG 0
 
 #define MAX_ROTATION_SPEED 0.5
 #define START_ROTATION_SPEED 0.05
