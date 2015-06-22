@@ -31,6 +31,10 @@
     enum {Xaxis=0, Yaxis=1, Zaxis=2};
     
     extern int axis;
+    
+    extern glm::vec3 camPosition;
+    extern glm::vec3 camDirection;
+    extern glm::vec3 camUp;
 
 #endif	/* CAMERAMOVEMENT_H */
 

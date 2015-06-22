@@ -438,7 +438,9 @@ void DrawBillboard(GLuint VBO, GLuint UVBO, GLuint TextureID, glm::vec3 billboar
        
     /* Associate program with shader matrices */
     glUniform3f(CameraRight_worldspace_ID, ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0]);
-    glUniform3f(CameraUp_worldspace_ID   , ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
+    //glUniform3f(CameraUp_worldspace_ID   , ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1]);
+    glUniform3f(CameraUp_worldspace_ID   , 0, 1,0);
+
 		
     glUniform3f(BillboardPosID, billboardPos.x, billboardPos.y, billboardPos.z); // The billboard will be just above the cube
     glUniform2f(BillboardSizeID, billboardSize.x, billboardSize.y);     // and 1m*12cm, because it matches its 256*32 resolution =)
@@ -1238,9 +1240,9 @@ void Initialize(void)
     ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane); 
 
     /* Set viewing transform */  
-    ViewMatrix = glm::lookAt(glm::vec3(0,5,-20),    /* Eye vector */
-			     glm::vec3(0,5,0),     /* Viewing center */
-			     glm::vec3(0,1,0) );  /* Up vector */
+    ViewMatrix = glm::lookAt(camPosition,    /* Eye vector */
+			     camDirection,     /* Viewing center */
+			     camUp );  /* Up vector */
     
     
     TranslateOriginBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(4, BOX1_START_POSITION_Y, 4));

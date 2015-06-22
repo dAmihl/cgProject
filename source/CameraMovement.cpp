@@ -2,6 +2,7 @@
 
 #include "../glm/glm.hpp"
 #include "../glm/gtc/matrix_transform.hpp"
+#include "../glm/gtx/rotate_vector.hpp"
 
 /* OpenGL includes */
 #include <GL/glew.h>
@@ -35,6 +36,11 @@
     int axis = Yaxis;
 
 
+    glm::vec3 camPosition = glm::vec3(0,5,-20);
+    glm::vec3 camDirection = glm::vec3(0,5,0);
+    glm::vec3 camUp = glm::vec3(0,1,0);
+    
+    
 /*
  Handles for the WASD Movement
  */
@@ -83,46 +89,31 @@ glm::vec3 getCurrentCameraLookAt(glm::mat4 ViewMatrix){
 glm::mat4 CameraFreeMove(glm::mat4 ViewMatrix){
 	//glm::mat4 TranslationMatrixMouse;
 	        
-        glm::vec3 CurrentCameraPosition = getCurrentCameraPosition(ViewMatrix);
-        glm::vec3 cameraLookAt = glm::vec3(0.0f, 0.0f, -1.0f);
-        //cameraLookAt = getCurrentCameraLookAt(ViewMatrix);
-        glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
         
         float camMoveSpeed = 3.f / (float)deltaTime;
         glm::vec3 cameraMovement = glm::vec3(0.0f);
         
         if (camMoveForward == GL_TRUE){
-            cameraMovement -= camMoveSpeed * glm::normalize(cameraLookAt);
+            cameraMovement += camMoveSpeed * glm::normalize(camDirection);
         }
         
         if (camMoveBack == GL_TRUE){
-            cameraMovement += camMoveSpeed * glm::normalize(cameraLookAt);
+            cameraMovement -= camMoveSpeed * glm::normalize(camDirection);
         }
         
         if (camMoveLeft == GL_TRUE){
-            cameraMovement += glm::normalize(glm::cross(cameraLookAt, cameraUp)) * camMoveSpeed;
+            cameraMovement -= glm::normalize(glm::cross(camDirection, camUp)) * camMoveSpeed;
         }
         
         if (camMoveRight == GL_TRUE){
-            cameraMovement -= glm::normalize(glm::cross(cameraLookAt, cameraUp)) * camMoveSpeed;
+            cameraMovement += glm::normalize(glm::cross(camDirection, camUp)) * camMoveSpeed;
         }
         
-        glm::mat4 TranslationMatrixMouse = glm::translate(glm::mat4(1.0f), glm::vec3(cameraMovement.x, cameraMovement.y, cameraMovement.z));
-        
-        //glm::mat4 RotationMatrixMouseX = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaY/deltaTime, glm::vec3(1.0f, 0.0f, 0.0f));
-       //glm::mat4 RotationMatrixMouseY = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaX/deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
-        
-        /* Set viewing transform */  
-        ViewMatrix = glm::lookAt(CurrentCameraPosition,    /* Eye vector */
-			     cameraLookAt,     /* Viewing center */
-			     cameraUp /* Up vector */
-                );  
-        
-        //ViewMatrix = RotationMatrixMouseX * RotationMatrixMouseY * ViewMatrix;
-        
-        ViewMatrix = TranslationMatrixMouse * ViewMatrix;
-        
-        
+        camDirection = glm::rotate(camDirection, (float) -mouseDeltaX/deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
+        camDirection = glm::rotate(camDirection, (float) mouseDeltaY/deltaTime, glm::vec3(1.0f, 0.0f, 0.0f));
+        camPosition += cameraMovement;
+           
+        ViewMatrix = glm::lookAt(camPosition, camPosition + camDirection, camUp);
         
                 
         mouseDeltaY = 0;
