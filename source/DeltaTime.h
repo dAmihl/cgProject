@@ -13,6 +13,7 @@ extern int deltaTime;
 extern int oldTimeSinceStart;
 
 void computeDeltaTime();
+float fpsIndependentFloat(float f);
 
 
 

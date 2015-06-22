@@ -14,4 +14,9 @@ void computeDeltaTime(){
     oldTimeSinceStart = newTime; 
 }
 
+float fpsIndependentFloat(float f){
+    f = f * deltaTime/1000;
+    return f;
+}
+
 
