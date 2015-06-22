@@ -20,6 +20,8 @@ The fragment and vertex shaders are built with help of http://www.opengl-tutoria
 Texture Loading:
 For the texture loading, we use the free SOIL (Simple OpenGL Image Library). http://www.lonesock.net/soil.html
 
+Texture Sources:
+Textures all come from http://opengameart.org
 ## Controls
 
 Key '1': Activate fixed camera movement.

@@ -1151,7 +1151,7 @@ void Initialize(void)
    //LoadMesh(&Robot, "models/spider01.obj");
     LoadMesh(&Robot, "models/ufo_new.obj");
     LoadMesh(&Pavillon, "models/pavillon_new.obj");
-    LoadMesh(&Floor, "models/groundplane.obj");
+    LoadMesh(&Floor, "models/plane.obj");
     SetupStandardBillboard(&Billboard);
     
     glClearColor(0.3f, 0.3f, 0.8f, 0.0);
@@ -1184,13 +1184,13 @@ void Initialize(void)
 
     /* Setup Texture*/
     
-    SetupTexture(&Robot.TextureID, Robot.TextureData, "textures/rustytexture.bmp");
+    SetupTexture(&Robot.TextureID, Robot.TextureData, "textures/metal.png");
     SetupTexture(&Floor.TextureID, Floor.TextureData, "textures/grass.bmp");
-    SetupTexture(&Pavillon.TextureID, Pavillon.TextureData, "textures/bunker_galvanized.bmp");
+    SetupTexture(&Pavillon.TextureID, Pavillon.TextureData, "textures/metalpavillon.bmp");
 
     // Normal Maps
     SetupTexture(&TextureFloorNormalMapID, TextureFloorNormalMap, "textures/normalmap_grass.bmp");
-    SetupTexture(&TextureRobotNormalMapID, TextureRobotNormalMap, "textures/normalmap_robot.bmp");
+    SetupTexture(&TextureRobotNormalMapID, TextureRobotNormalMap, "textures/metal_norm.png");
     SetupTexture(&TexturePavillonNormalMapID, TexturePavillonNormalMap, "textures/bumpmaptest.bmp");
 
     
