@@ -88,15 +88,15 @@ glm::mat4 CameraFreeMove(glm::mat4 ViewMatrix){
         //cameraLookAt = getCurrentCameraLookAt(ViewMatrix);
         glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
         
-        float camMoveSpeed = 5.f / (float)deltaTime;
+        float camMoveSpeed = 3.f / (float)deltaTime;
         glm::vec3 cameraMovement = glm::vec3(0.0f);
         
         if (camMoveForward == GL_TRUE){
-            cameraMovement -= camMoveSpeed * cameraLookAt;
+            cameraMovement -= camMoveSpeed * glm::normalize(cameraLookAt);
         }
         
         if (camMoveBack == GL_TRUE){
-            cameraMovement += camMoveSpeed * cameraLookAt;
+            cameraMovement += camMoveSpeed * glm::normalize(cameraLookAt);
         }
         
         if (camMoveLeft == GL_TRUE){
