@@ -1240,9 +1240,9 @@ void Initialize(void)
     ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane); 
 
     /* Set viewing transform */  
-    ViewMatrix = glm::lookAt(camPosition,    /* Eye vector */
-			     camDirection,     /* Viewing center */
-			     camUp );  /* Up vector */
+    ViewMatrix = glm::lookAt(glm::vec3(0,5,-20),    /* Eye vector */
+			     glm::vec3(0,5,0),     /* Viewing center */
+			     glm::vec3(0,1,0) );  /* Up vector */
     
     
     TranslateOriginBox1 = glm::translate(glm::mat4(1.0f), glm::vec3(4, BOX1_START_POSITION_Y, 4));

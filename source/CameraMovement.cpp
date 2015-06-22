@@ -88,7 +88,7 @@ glm::vec3 getCurrentCameraLookAt(glm::mat4 ViewMatrix){
 
 glm::mat4 CameraFreeMove(glm::mat4 ViewMatrix){
 	//glm::mat4 TranslationMatrixMouse;
-	        
+   
         
         float camMoveSpeed = 3.f / (float)deltaTime;
         glm::vec3 cameraMovement = glm::vec3(0.0f);
@@ -109,12 +109,17 @@ glm::mat4 CameraFreeMove(glm::mat4 ViewMatrix){
             cameraMovement += glm::normalize(glm::cross(camDirection, camUp)) * camMoveSpeed;
         }
         
+        if (mouseDeltaX == 0 && mouseDeltaY == 0 && cameraMovement == glm::vec3(0,0,0)) return ViewMatrix;
+        
         camDirection = glm::rotate(camDirection, (float) -mouseDeltaX/deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
         camDirection = glm::rotate(camDirection, (float) mouseDeltaY/deltaTime, glm::vec3(1.0f, 0.0f, 0.0f));
+        
+        
+        
+        
         camPosition += cameraMovement;
            
         ViewMatrix = glm::lookAt(camPosition, camPosition + camDirection, camUp);
-        
                 
         mouseDeltaY = 0;
         mouseDeltaX = 0;
