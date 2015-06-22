@@ -60,15 +60,15 @@ glm::vec3 getCurrentCameraPosition(glm::mat4 ViewMatrix){
     // In order to get the current Camera Position, the bottom row of the inverse of the viewmatrix is needed
     glm::mat4 ViewInverse = glm::inverse(glm::mat4(ViewMatrix));
     glm::vec3 cameraPos = glm::vec3(ViewInverse[3].x, ViewInverse[3].y, ViewInverse[3].z);
-    fprintf(stderr, "CurrentCameraPosition: %f %f %f\n", cameraPos.x, cameraPos.y, cameraPos.z);
+    //fprintf(stderr, "CurrentCameraPosition: %f %f %f\n", cameraPos.x, cameraPos.y, cameraPos.z);
     return cameraPos;
 }
 
 glm::vec3 getCurrentCameraLookAt(glm::mat4 ViewMatrix){
-        glm::mat4 tmpView = glm::mat4(ViewMatrix);
+        glm::mat4 tmpView = glm::inverse(ViewMatrix);
     // In order to get the current Camera look at vector, the third row of the inverse of the viewmatrix is needed
     glm::vec3 cameraLookAt = glm::vec3(tmpView[0][2], tmpView[1][2], tmpView[2][2]);
-    fprintf(stderr, "CurrentCameraLookat: %f %f %f\n", cameraLookAt.x, cameraLookAt.y, cameraLookAt.z);
+    //fprintf(stderr, "CurrentCameraLookat: %f %f %f\n", cameraLookAt.x, cameraLookAt.y, cameraLookAt.z);
     return cameraLookAt;
 }
 
@@ -85,6 +85,7 @@ glm::mat4 CameraFreeMove(glm::mat4 ViewMatrix){
 	        
         glm::vec3 CurrentCameraPosition = getCurrentCameraPosition(ViewMatrix);
         glm::vec3 cameraLookAt = glm::vec3(0.0f, 0.0f, -1.0f);
+        cameraLookAt = getCurrentCameraLookAt(ViewMatrix);
         glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
         
         float camMoveSpeed = 0.5f;
@@ -108,13 +109,19 @@ glm::mat4 CameraFreeMove(glm::mat4 ViewMatrix){
         
         glm::mat4 TranslationMatrixMouse = glm::translate(glm::mat4(1.0f), glm::vec3(cameraMovement.x, cameraMovement.y, cameraMovement.z));
         
+        //glm::mat4 RotationMatrixMouseX = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaY/deltaTime, glm::vec3(1.0f, 0.0f, 0.0f));
+       //glm::mat4 RotationMatrixMouseY = glm::rotate(glm::mat4(1.0f), (float) mouseDeltaX/deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
+        
         /* Set viewing transform */  
         ViewMatrix = glm::lookAt(CurrentCameraPosition,    /* Eye vector */
 			     cameraLookAt,     /* Viewing center */
 			     cameraUp /* Up vector */
                 );  
         
+        //ViewMatrix = RotationMatrixMouseX * RotationMatrixMouseY * ViewMatrix;
+        
         ViewMatrix = TranslationMatrixMouse * ViewMatrix;
+        
         
         
                 
