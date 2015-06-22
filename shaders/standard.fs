@@ -31,7 +31,7 @@ void main(){
 
         /*
             Normal
-            Computes the bitangent by cross product of the tangent (given by code) and the normal in cameraspace  
+            Computes the bitangent by cross product of the tangent (given by code) and the normal in modelspace  
         */
        if (normalMappingActive == 1){
             vec3 normalModelspace = normalize(Normal_modelspace);
