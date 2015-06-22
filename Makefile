@@ -4,7 +4,8 @@ LD = gcc
 OBJ = MerryGoRound.o LoadShader.o LoadTexture.o CameraMovement.o DeltaTime.o image_DXT.o SOIL/image_helper.o SOIL/SOIL.o
 TARGET = MerryGoRound
 #-Wextra
-CFLAGS = -g -Wall -std=c++0x 
+CPPFLAGS = -g -Wall -std=c++0x 
+CFLAGS = -g -Wall -std=c99
 LDLIBS = -lm -lglut -lGLEW -lGL
 INCLUDES = -Isource -ISOIL
 SRC_DIR = source
@@ -15,13 +16,13 @@ VPATH = source
 all: $(TARGET)
 # 
 $(TARGET).o: $(TARGET).cpp 
-	$(CC) $(CFLAGS) $(INCLUDES)  -c $^ -o $@
+	$(CC) $(CPPFLAGS) $(INCLUDES)  -c $^ -o $@
 # 
 $(BUILD_DIR)/%.o: %.c 
-	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
+	$(CC) $(CPPFLAGS) $(INCLUDES) -c $^ -o $@
 
 $(BUILD_DIR)/%.o: %.cpp
-	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
+	$(CC) $(CPPFLAGS) $(INCLUDES) -c $^ -o $@
 # 
 clean: 
 	rm -f $(BUILD_DIR)/*.o *.o $(TARGET) 

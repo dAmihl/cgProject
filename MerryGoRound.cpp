@@ -1288,11 +1288,14 @@ int main(int argc, char** argv)
 
     setupIntelMesaConfiguration();
 
+    int SCREEN_WIDTH = 800;
+    int SCREEN_HEIGHT = 800;
+    
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-    glutInitWindowSize(800, 800);
+    glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
     glutInitWindowPosition(400, 400);
     glutCreateWindow("Round round round");
-
+    glutWarpPointer( glutGet(GLUT_WINDOW_WIDTH) / 2,  glutGet(GLUT_WINDOW_HEIGHT) / 2);
     
 
     /* Initialize GL extension wrangler */
@@ -1306,6 +1309,7 @@ int main(int argc, char** argv)
     /* Setup scene and rendering parameters */
     Initialize();
 
+    
 
     /* Specify callback functions;enter GLUT event processing loop, 
      * handing control over to GLUT */
