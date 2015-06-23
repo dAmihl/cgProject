@@ -33,6 +33,21 @@
 #define GROUND_HEIGHT 0.2
 
 #define GLM_FORCE_RADIANS  /* Use radians in all GLM functions */
+
+
+/* GLM includes - adjust path as required for local installation */
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp" /* Provides glm::translate, glm::rotate, 
+                                         * glm::scale, glm::perspective */
+#include "glm/gtc/type_ptr.hpp"         /* Vector/matrix handling */
+/*
+ Include TinyObjLoader
+ * Source: look at README
+ */
+#include "tinyobjloader/tiny_obj_loader.cc"
+
+
+
 /* Standard includes */
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,29 +56,24 @@
 #include <vector>
 #include <cstdlib>
 
-/* GLM includes - adjust path as required for local installation */
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp" /* Provides glm::translate, glm::rotate, 
-                                         * glm::scale, glm::perspective */
-#include "glm/gtc/type_ptr.hpp"         /* Vector/matrix handling */
 
-/*
- Include TinyObjLoader
- * Source: look at README
- */
-#include "tinyobjloader/tiny_obj_loader.cc"
+
 
 /* OpenGL includes */
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+
 #include "DeltaTime.h"
+extern "C"{
 #include "LoadShader.h"   /* Provides loading function for shader code */
+}
 #include "LoadTexture.h"
 #include "Objects.h"
 #include "CameraMovement.h"
 
 #include "SOIL.h"
+
 
 /*----------------------------------------------------------------*/
 /* Define handle to a vertex array object (only for MESA USE) */
